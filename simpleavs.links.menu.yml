@@ -1,0 +1,7 @@
+simpleavs.admin_settings:
+  title: 'Simple AVS'
+  description: 'Configure SimpleAVS settings.'
+  route_name: simpleavs.admin_settings
+  parent: system.admin_config_people
+  menu_name: admin
+  weight: 0

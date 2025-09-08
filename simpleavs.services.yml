@@ -1,0 +1,11 @@
+services:
+  logger.channel.simpleavs:
+    parent: logger.channel_base
+    arguments: ['simpleavs']
+
+  simpleavs.session_manager:
+    class: Drupal\simpleavs\Session\AvsSessionManager
+    arguments:
+      - '@request_stack'
+      - '@session'
+      - '@logger.channel.simpleavs'

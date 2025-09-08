@@ -1,0 +1,12 @@
+agegate:
+  version: 1.x
+  js:
+    js/agegate.js: {}
+    js/dobmask.js: {}
+  css:
+    theme:
+      css/agegate.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupalSettings

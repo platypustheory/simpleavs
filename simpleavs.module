@@ -1,0 +1,98 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Url;
+
+/**
+ * @file
+ * Bootstrap + page attachments for SimpleAVS.
+ */
+
+/**
+ * Implements hook_page_attachments().
+ */
+function simpleavs_page_attachments(array &$attachments): void {
+  $cfg = \Drupal::config('simpleavs.settings');
+
+  // Bubble cache metadata so config changes invalidate rendered pages.
+  $cm = new CacheableMetadata();
+  $cm = $cm->addCacheTags(['config:simpleavs.settings'])
+           ->addCacheContexts(['url.path', 'url.path.is_front', 'route']);
+  $cm->applyTo($attachments);
+
+  $enabled   = (bool) ($cfg->get('enabled') ?? FALSE);
+  $method    = (string) ($cfg->get('method') ?? 'question');
+  $min_age   = (int)   ($cfg->get('min_age') ?? 18);
+  $frequency = (string) ($cfg->get('frequency') ?? 'never');
+
+  $path_mode     = (string) ($cfg->get('path_mode') ?? 'exclude');
+  $path_patterns = (string) ($cfg->get('path_patterns') ?? '');
+
+  $redirect_success = (string) ($cfg->get('redirect_success') ?? '');
+  $redirect_failure = (string) ($cfg->get('redirect_failure') ?? '');
+
+  $strings    = $cfg->get('strings') ?? [];
+  $appearance = $cfg->get('appearance') ?? [];
+
+  $date_format = (string) ($cfg->get('date_format') ?? 'mdy');
+  $date_format = ($date_format === 'dmy') ? 'dmy' : 'mdy';
+
+  // Only attach when the gate should show on this path.
+  if ($enabled && _simpleavs_is_required_route($path_mode, $path_patterns)) {
+    // Kill Drupal page cache for this request so changes are immediate.
+    // (Safer while you’re iterating / if you have a reverse proxy in front.)
+    \Drupal::service('page_cache_kill_switch')->trigger();
+
+    // Also set max-age 0 on this attachment to discourage proxy caching.
+    $attachments['#cache']['max-age'] = 0;
+
+    $attachments['#attached']['library'][] = 'simpleavs/agegate';
+    $attachments['#attached']['drupalSettings']['simpleavs'] = [
+      'enabled'   => TRUE,
+      'method'    => $method,
+      'min_age'   => $min_age,
+      'frequency' => $frequency,
+      'paths'     => ['mode' => $path_mode, 'patterns' => $path_patterns],
+      'redirects' => ['success' => $redirect_success, 'failure' => $redirect_failure],
+      'strings'   => $strings,
+      'appearance'=> $appearance,
+      'endpoints' => [
+        'token'  => Url::fromRoute('simpleavs.token')->setAbsolute()->toString(),
+        'verify' => Url::fromRoute('simpleavs.verify')->setAbsolute()->toString(),
+      ],
+      'date_format' => $date_format, // 'mdy' | 'dmy'
+    ];
+  }
+}
+
+/**
+ * Lightweight path matcher mirroring your existing scoping rules.
+ */
+function _simpleavs_is_required_route(string $mode, string $patterns): bool {
+  $pm = \Drupal::service('path.matcher');
+  $am = \Drupal::service('path_alias.manager');
+  $cur = \Drupal::service('path.current')->getPath();
+  $alias = $am->getAliasByPath($cur);
+
+  $raw = (string) $patterns;
+  $norm = str_replace(["\r\n", "\r", ","], "\n", $raw);
+  $lines = array_values(array_filter(array_map('trim', explode("\n", $norm)), static fn($v) => $v !== ''));
+
+  $hasFront = FALSE;
+  foreach ($lines as $i => $p) {
+    if (strcasecmp($p, '<front>') === 0) {
+      $hasFront = TRUE;
+      unset($lines[$i]);
+    }
+  }
+  $blob = implode("\n", $lines);
+
+  $isFront = $pm->isFrontPage();
+  $match_current = $blob !== '' ? $pm->matchPath($cur, $blob) : FALSE;
+  $match_alias   = ($blob !== '' && $alias !== $cur) ? $pm->matchPath($alias, $blob) : FALSE;
+  $listed = $match_current || $match_alias || ($hasFront && $isFront);
+
+  return $mode === 'include' ? $listed : !$listed;
+}

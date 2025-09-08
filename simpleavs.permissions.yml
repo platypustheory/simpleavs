@@ -1,0 +1,8 @@
+administer simpleavs:
+  title: 'Administer SimpleAVS'
+  description: 'Configure SimpleAVS settings.'
+  restrict access: true
+
+bypass simpleavs:
+  title: 'Bypass AVS Check'
+  description: 'Users with this permission bypass the age verification check.'

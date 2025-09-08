@@ -1,0 +1,53 @@
+simpleavs.settings:
+  type: config_object
+  label: 'SimpleAVS settings'
+  mapping:
+    enabled:
+      type: boolean
+    method:
+      type: string
+    min_age:
+      type: integer
+    date_format:
+      type: string
+    frequency:
+      type: string
+    path_mode:
+      type: string
+    path_patterns:
+      type: text
+    redirect_success:
+      type: string
+    redirect_failure:
+      type: string
+    strings:
+      type: mapping
+      mapping:
+        modal_title: { type: string }
+        question_text: { type: string }
+        yes_button: { type: string }
+        no_button: { type: string }
+        dob_instruction: { type: string }
+        dob_verify_button: { type: string }
+        dob_invalid_message: { type: string }
+        message_confirm: { type: string }
+        confirm_button: { type: string }
+        deny_button: { type: string }
+        denied_message: { type: string }
+    appearance:
+      type: mapping
+      mapping:
+        preset:
+          type: string
+        overlay_color:
+          type: string
+        overlay_opacity:
+          type: float
+        modal_bg:
+          type: string
+        text_color:
+          type: string
+        button_bg:
+          type: string
+        button_text:
+          type: string

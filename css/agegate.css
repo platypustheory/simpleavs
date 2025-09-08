@@ -1,0 +1,54 @@
+.simpleavs-locked {
+  overflow: hidden;
+}
+
+.simpleavs-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.simpleavs-modal {
+  max-width: 560px;
+  width: 100%;
+  background: #ffffff;
+  color: #111;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.simpleavs-title {
+  margin: 0 0 .5rem 0;
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.simpleavs-message {
+  margin: 0 0 1rem 0;
+}
+
+.simpleavs-actions {
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+}
+
+.simpleavs-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  padding: .6rem .9rem;
+  background: #2e7d32;
+  color: #fff;
+  cursor: pointer;
+}
+
+.simpleavs-btn.no {
+  background: #b00020;
+}
