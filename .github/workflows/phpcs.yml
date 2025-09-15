@@ -1,0 +1,27 @@
+name: PHPCS (Drupal Coder)
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
+jobs:
+  phpcs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPCS
+        run: vendor/bin/phpcs --standard=phpcs.xml.dist --extensions=php,module,inc,install,test,theme,yml web/modules/custom/simpleavs
+
