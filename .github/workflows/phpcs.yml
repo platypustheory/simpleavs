@@ -2,64 +2,74 @@ name: PHPCS (Drupal Coder)
 
 on:
   push:
+    branches: [ main, 1.x ]
   pull_request:
+
+permissions:
+  contents: write   # allow the workflow to push auto-fixes
 
 jobs:
   phpcs:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    env:
+      COMPOSER_NO_INTERACTION: "1"
+      COMPOSER_NO_AUDIT: "1"
+      COMPOSER_PROCESS_TIMEOUT: "0"
+      MODULE_PATH: "."   # scan the whole repo; change to subdir if you want
 
-      - name: Setup PHP
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: "8.2"
           coverage: none
           tools: composer
 
-      - name: Install dependencies
-        run: composer install --no-progress --no-interaction
-
-      # Try to find the module directory. Falls back to repo root.
-      - name: Detect module path
-        id: detect
-        shell: bash
+      - name: Install dev tools
         run: |
-          if [ -d web/modules/custom/simpleavs ]; then
-            MP="web/modules/custom/simpleavs"
-          elif [ -f simpleavs.info.yml ]; then
-            MP="."
-          else
-            # best-effort: find any simpleavs.info.yml anywhere
-            P=$(git ls-files '**/simpleavs.info.yml' | head -n1 || true)
-            if [ -n "$P" ]; then MP="$(dirname "$P")"; else MP="."; fi
-          fi
-          echo "MODULE_PATH=$MP" | tee -a "$GITHUB_ENV"
+          composer install --no-progress --prefer-dist
 
-      - name: Run PHPCS
+      # (Optional but recommended) Normalize line endings + UTF-8
+      - name: Normalize text files
         run: |
-          echo "Scanning: $MODULE_PATH"
+          sudo apt-get update -y
+          sudo apt-get install -y dos2unix
+          # Convert common text files to LF and ensure UTF-8 (lossy-safe if BOM/odd bytes present)
+          find . -type f \( -name "*.php" -o -name "*.module" -o -name "*.inc" -o -name "*.install" -o -name "*.yml" -o -name "*.yaml" \) -print0 \
+            | xargs -0 -I{} bash -lc 'dos2unix "{}" >/dev/null 2>&1 || true; iconv -f utf-8 -t utf-8 "{}" -o "{}".tmp && mv "{}".tmp "{}"'
+
+      - name: Auto-fix with PHPCBF
+        run: |
+          vendor/bin/phpcbf \
+            --standard=phpcs.xml.dist \
+            --extensions=php,module,inc,install,test,theme,yml \
+            "$MODULE_PATH" || true
+
+      - name: Commit auto-fixes (if any)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Apply PHPCBF auto-fixes"
+          commit_user_name: "GitHub Actions"
+          commit_user_email: "actions@github.com"
+          file_pattern: |
+            **/*.php
+            **/*.module
+            **/*.inc
+            **/*.install
+            **/*.theme
+            **/*.yml
+            **/*.yaml
+
+      - name: Run PHPCS (report remaining)
+        run: |
           vendor/bin/phpcs \
             --standard=phpcs.xml.dist \
             --extensions=php,module,inc,install,test,theme,yml \
             "$MODULE_PATH"
-
-      # Optional: upload a text report as an artifact
-      - name: PHPCS report (artifact)
-        if: failure()
-        run: |
-          vendor/bin/phpcs \
-            --standard=phpcs.xml.dist \
-            --report=full \
-            --report-file=phpcs-report.txt \
-            --extensions=php,module,inc,install,test,theme,yml \
-            "$MODULE_PATH" || true
-        continue-on-error: true
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: phpcs-report
-          path: phpcs-report.txt
 
