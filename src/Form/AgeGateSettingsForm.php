@@ -263,8 +263,8 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#type' => 'textfield',
       '#title' => $this->t('Redirect on success (optional)'),
       '#default_value' => $redirect_success,
-      '#description' => $this->t('Internal path (e.g., "/node/1") or absolute URL (https://example.com). '
-      . 'Leave blank to stay on the same page.'),
+      '#description' => $this->t('Internal path (e.g., "/node/1") or absolute URL (https://example.com).'
+      .'Leave blank to stay on the same page.'),
     ];
     $form['redirects']['redirect_failure'] = [
       '#type' => 'textfield',
