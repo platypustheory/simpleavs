@@ -6,18 +6,26 @@ simpleavs.settings:
   requirements:
     _permission: 'administer simpleavs'
 
+# Public endpoint called by the front-end to verify a user's answer/DOB.
+# Open by design; validation is handled in the controller.
 simpleavs.verify:
   path: '/simpleavs/verify'
   defaults:
     _controller: '\Drupal\simpleavs\Controller\AgeGateController::verify'
   requirements:
     _access: 'TRUE'
-  options: { _format: 'json', no_cache: TRUE }
+  options:
+    _format: 'json'
+    no_cache: TRUE
 
+# Public endpoint used by the front-end to fetch a one-time token.
+# Open by design; tokens are session-bound and single-use.
 simpleavs.token:
   path: '/simpleavs/token'
   defaults:
     _controller: '\Drupal\simpleavs\Controller\AgeGateController::token'
   requirements:
     _access: 'TRUE'
-  options: { _format: 'json', no_cache: TRUE }
+  options:
+    _format: 'json'
+    no_cache: TRUE

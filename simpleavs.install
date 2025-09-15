@@ -1,10 +1,10 @@
 <?php
-declare(strict_types=1);
-
 /**
  * @file
  * Install/uninstall hooks for SimpleAVS.
  */
+
+declare(strict_types=1);
 
 /**
  * Implements hook_install().
