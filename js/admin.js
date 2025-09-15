@@ -48,7 +48,7 @@
 
         presetSelect.addEventListener('change', (e) => {
           const key = e.target.value;
-          if (!key) return; // “— None —”
+          if (!key) return; // â€œâ€” None â€”â€
           applyPresetToForm(form, key);
         });
       });

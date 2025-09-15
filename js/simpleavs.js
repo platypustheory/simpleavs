@@ -14,7 +14,7 @@
 
       const s = drupalSettings.simpleavs;
 
-      // Build a tiny, visible overlay so we can prove it’s attaching.
+      // Build a tiny, visible overlay so we can prove itâ€™s attaching.
       const overlay = document.createElement('div');
       overlay.style.position = 'fixed';
       overlay.style.inset = '0';
