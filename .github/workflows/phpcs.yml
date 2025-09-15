@@ -38,8 +38,18 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y dos2unix
-          find . -type f \( -name "*.php" -o -name "*.module" -o -name "*.inc" -o -name "*.install" -o -name "*.yml" -o -name "*.yaml" \) -print0 \
-            | xargs -0 -I{} bash -lc 'dos2unix "{}" >/dev/null 2>&1 || true; iconv -f utf-8 -t utf-8 "{}" -o "{}".tmp && mv "{}".tmp "{}"'
+          # Skip vendor/.git/.github; normalize only source files.
+          find . \
+            -path ./vendor -prune -o \
+            -path ./.git -prune -o \
+            -path ./.github -prune -o \
+            -type f \( -name "*.php" -o -name "*.module" -o -name "*.inc" -o -name "*.install" -o -name "*.yml" -o -name "*.yaml" \) -print0 |
+          xargs -0 -I{} bash -lc '
+            f="{}";
+            dos2unix "$f" >/dev/null 2>&1 || true;
+            # -c drops any invalid bytes so iconv won’t fail the job.
+            iconv -f utf-8 -t utf-8 -c "$f" -o "$f.tmp" && mv "$f.tmp" "$f"
+          '
 
       - name: Auto-fix with PHPCBF
         run: |
