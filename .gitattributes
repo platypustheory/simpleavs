@@ -1,0 +1,12 @@
+# Normalize line endings and enforce UTF-8 text
+*.php        text eol=lf
+*.module     text eol=lf
+*.inc        text eol=lf
+*.install    text eol=lf
+*.theme      text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.js         text eol=lf
+*.css        text eol=lf
+*.md         text eol=lf
+
