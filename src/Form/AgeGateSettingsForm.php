@@ -13,99 +13,113 @@ use Drupal\Core\Form\FormStateInterface;
 final class AgeGateSettingsForm extends ConfigFormBase {
 
   /**
-   *
+   * {@inheritdoc}
    */
   public function getFormId(): string {
     return 'simpleavs_settings_form';
   }
 
   /**
-   *
+   * {@inheritdoc}
    */
   protected function getEditableConfigNames(): array {
     return ['simpleavs.settings'];
   }
 
   /**
-   * Preset definitions.
+   * Returns preset definitions used to populate the appearance fields.
+   *
+   * @return array
+   *   An associative array keyed by preset machine name. Each item contains:
+   *   - label: The translatable label.
+   *   - values: An array of appearance values applied by that preset.
    */
   private function presets(): array {
     return [
       'none' => [
-        'label' => $this->t(' No preset (keep current values) '),
+        // Fixed: no leading/trailing whitespace around the translatable string.
+        'label' => $this->t('No preset (keep current values)'),
         'values' => [],
       ],
       'light' => [
         'label' => $this->t('Classic Light'),
         'values' => [
-          'overlay_color'   => '#000000',
+          'overlay_color' => '#000000',
           'overlay_opacity' => 0.5,
-          'modal_bg'        => '#ffffff',
-          'text_color'      => '#111111',
-          'button_bg'       => '#1e3a8a',
-          'button_text'     => '#ffffff',
+          'modal_bg' => '#ffffff',
+          'text_color' => '#111111',
+          'button_bg' => '#1e3a8a',
+          'button_text' => '#ffffff',
         ],
       ],
       'dark' => [
         'label' => $this->t('Classic Dark'),
         'values' => [
-          'overlay_color'   => '#000000',
+          'overlay_color' => '#000000',
           'overlay_opacity' => 0.85,
-          'modal_bg'        => '#111827',
-          'text_color'      => '#e5e7eb',
-          'button_bg'       => '#2563eb',
-          'button_text'     => '#ffffff',
+          'modal_bg' => '#111827',
+          'text_color' => '#e5e7eb',
+          'button_bg' => '#2563eb',
+          'button_text' => '#ffffff',
         ],
       ],
       'love' => [
         'label' => $this->t('Love'),
         'values' => [
-          'overlay_color'   => '#000000',
+          'overlay_color' => '#000000',
           'overlay_opacity' => 0.85,
-          'modal_bg'        => '#F2E6D0',
-          'text_color'      => '#1F1B16',
-          'button_bg'       => '#B11E2F',
-          'button_text'     => '#FFF7E6',
+          'modal_bg' => '#F2E6D0',
+          'text_color' => '#1F1B16',
+          'button_bg' => '#B11E2F',
+          'button_text' => '#FFF7E6',
         ],
       ],
       'glass' => [
         'label' => $this->t('Glass / Frosted'),
         'values' => [
-          'overlay_color'   => '#0f172a',
+          'overlay_color' => '#0f172a',
           'overlay_opacity' => 0.55,
-          'modal_bg'        => '#ffffff',
-          'text_color'      => '#0f172a',
-          'button_bg'       => '#0ea5e9',
-          'button_text'     => '#ffffff',
+          'modal_bg' => '#ffffff',
+          'text_color' => '#0f172a',
+          'button_bg' => '#0ea5e9',
+          'button_text' => '#ffffff',
         ],
       ],
       'contrast' => [
         'label' => $this->t('High Contrast'),
         'values' => [
-          'overlay_color'   => '#000000',
+          'overlay_color' => '#000000',
           'overlay_opacity' => 0.9,
-          'modal_bg'        => '#ffffff',
-          'text_color'      => '#000000',
-          'button_bg'       => '#000000',
-          'button_text'     => '#ffffff',
+          'modal_bg' => '#ffffff',
+          'text_color' => '#000000',
+          'button_bg' => '#000000',
+          'button_text' => '#ffffff',
         ],
       ],
       'brand' => [
         'label' => $this->t('Brand (Purple)'),
         'values' => [
-          'overlay_color'   => '#0b0b0b',
+          'overlay_color' => '#0b0b0b',
           'overlay_opacity' => 0.8,
-          'modal_bg'        => '#1f0937',
-          'text_color'      => '#f5f3ff',
-          'button_bg'       => '#7c3aed',
-          'button_text'     => '#ffffff',
+          'modal_bg' => '#1f0937',
+          'text_color' => '#f5f3ff',
+          'button_bg' => '#7c3aed',
+          'button_text' => '#ffffff',
         ],
       ],
     ];
   }
 
   /**
-   * Apply preset values onto an existing appearance array.
+   * Applies a preset array onto the given appearance array.
+   *
+   * @param string $key
+   *   Preset key (e.g., 'light').
+   * @param array $current
+   *   Current appearance values.
+   *
+   * @return array
+   *   Merged appearance values.
    */
   private function applyPreset(string $key, array $current): array {
     $presets = $this->presets();
@@ -119,24 +133,24 @@ final class AgeGateSettingsForm extends ConfigFormBase {
   }
 
   /**
-   *
+   * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $cfg = $this->config('simpleavs.settings');
 
     // Safe reads with sane defaults.
-    $enabled   = (bool) ($cfg->get('enabled') ?? FALSE);
-    $method    = (string) ($cfg->get('method') ?? 'question');
-    $min_age   = (int) ($cfg->get('min_age') ?? 18);
+    $enabled = (bool) ($cfg->get('enabled') ?? FALSE);
+    $method = (string) ($cfg->get('method') ?? 'question');
+    $min_age = (int) ($cfg->get('min_age') ?? 18);
     $frequency = (string) ($cfg->get('frequency') ?? 'session');
 
-    $path_mode     = (string) ($cfg->get('path_mode') ?? 'exclude');
+    $path_mode = (string) ($cfg->get('path_mode') ?? 'exclude');
     $path_patterns = (string) ($cfg->get('path_patterns') ?? '');
 
     $redirect_success = (string) ($cfg->get('redirect_success') ?? '');
     $redirect_failure = (string) ($cfg->get('redirect_failure') ?? '');
 
-    $strings         = $cfg->get('strings') ?? [];
+    $strings = $cfg->get('strings') ?? [];
     $appearanceSaved = $cfg->get('appearance') ?? [];
 
     // Date format (only mdy|dmy).
@@ -148,7 +162,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     // Preset selection + preview (AJAX).
     $presets = $this->presets();
 
-    // ? Prefer the current user input (AJAX selection) so colors update live.
+    // Prefer the current user input (AJAX selection) so colors update live.
     $ui = $form_state->getUserInput();
     if (isset($ui['appearance']['preset'])) {
       $selectedPreset = (string) $ui['appearance']['preset'];
@@ -174,7 +188,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Verification method'),
       '#options' => [
         'question' => $this->t('Simple question (Yes/No)'),
-        'dob'      => $this->t('Date of birth'),
+        'dob' => $this->t('Date of birth'),
       ],
       '#default_value' => $method,
     ];
@@ -209,9 +223,9 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Prompt frequency'),
       '#options' => [
         'session' => $this->t('Once per session'),
-        'daily'   => $this->t('Once per day'),
-        'weekly'  => $this->t('Once per week'),
-        'always'  => $this->t('On every page load'),
+        'daily' => $this->t('Once per day'),
+        'weekly' => $this->t('Once per week'),
+        'always' => $this->t('On every page load'),
       ],
       '#default_value' => $frequency,
     ];
@@ -235,6 +249,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#type' => 'textarea',
       '#title' => $this->t('Pages'),
       '#default_value' => $path_patterns,
+      // This is a long string, but warning-only. Keeping it readable.
       '#description' => $this->t('One path per line. Use %front for the front page. Wildcards like "blog/*" are allowed.', ['%front' => '<front>']),
     ];
 
@@ -362,7 +377,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#type' => 'details',
       '#title' => $this->t('Appearance'),
       '#open' => TRUE,
-    // Ensure nested values are preserved.
+      // Ensure nested values are preserved.
       '#tree' => TRUE,
     ];
 
@@ -379,8 +394,8 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#description' => $this->t('Choosing a preset will populate the fields below. You can still tweak any value.'),
       '#ajax' => [
         'callback' => '::presetAjax',
-        'wrapper'  => 'simpleavs-appearance-wrapper',
-        'event'    => 'change',
+        'wrapper' => 'simpleavs-appearance-wrapper',
+        'event' => 'change',
       ],
     ];
 
@@ -430,7 +445,10 @@ final class AgeGateSettingsForm extends ConfigFormBase {
   }
 
   /**
-   * AJAX callback to re-render appearance fields when preset changes.
+   * AJAX callback to re-render appearance fields when the preset changes.
+   *
+   * @return array
+   *   The render array for the appearance wrapper container.
    */
   public function presetAjax(array &$form, FormStateInterface $form_state): array {
     // Read from triggering element to avoid stale values during AJAX.
@@ -446,7 +464,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
   }
 
   /**
-   *
+   * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     foreach (['redirect_success', 'redirect_failure'] as $key) {
@@ -463,35 +481,43 @@ final class AgeGateSettingsForm extends ConfigFormBase {
   }
 
   /**
-   *
+   * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $values = $form_state->cleanValues()->getValues();
 
     // Current saved appearance to compare prior preset.
     $prevAppearance = $this->config('simpleavs.settings')->get('appearance') ?? [];
-    $prevPreset     = (string) ($prevAppearance['preset'] ?? 'none');
+    $prevPreset = (string) ($prevAppearance['preset'] ?? 'none');
 
     $save = [
-      'enabled'          => (bool) $values['enabled'],
-      'method'           => (string) $values['method'],
-      'min_age'          => (int) $values['min_age'],
-    // 'mdy' | 'dmy'
-      'date_format'      => (string) $values['date_format'],
-      'frequency'        => (string) $values['frequency'],
-      'path_mode'        => (string) $values['path_mode'],
-      'path_patterns'    => (string) $values['path_patterns'],
+      'enabled' => (bool) $values['enabled'],
+      'method' => (string) $values['method'],
+      'min_age' => (int) $values['min_age'],
+      // 'mdy' | 'dmy'.
+      'date_format' => (string) $values['date_format'],
+      'frequency' => (string) $values['frequency'],
+      'path_mode' => (string) $values['path_mode'],
+      'path_patterns' => (string) $values['path_patterns'],
       'redirect_success' => (string) $values['redirect_success'],
       'redirect_failure' => (string) $values['redirect_failure'],
-      'strings'          => [],
-      'appearance'       => [],
+      'strings' => [],
+      'appearance' => [],
     ];
 
     // Strings.
     foreach ([
-      'modal_title', 'question_text', 'yes_button', 'no_button',
-      'dob_instruction', 'dob_verify_button', 'dob_invalid_message',
-      'message_confirm', 'confirm_button', 'deny_button', 'denied_message',
+      'modal_title',
+      'question_text',
+      'yes_button',
+      'no_button',
+      'dob_instruction',
+      'dob_verify_button',
+      'dob_invalid_message',
+      'message_confirm',
+      'confirm_button',
+      'deny_button',
+      'denied_message',
     ] as $k) {
       $save['strings'][$k] = (string) ($values[$k] ?? '');
     }
@@ -499,12 +525,12 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     // Figure out appearance from either the preset or submitted fields.
     $presetSel = (string) $values['appearance']['preset'];
     $submitted = [
-      'overlay_color'   => (string) ($values['appearance']['wrapper']['overlay_color'] ?? '#000000'),
+      'overlay_color' => (string) ($values['appearance']['wrapper']['overlay_color'] ?? '#000000'),
       'overlay_opacity' => (float) ($values['appearance']['wrapper']['overlay_opacity'] ?? 0.85),
-      'modal_bg'        => (string) ($values['appearance']['wrapper']['modal_bg'] ?? '#ffffff'),
-      'text_color'      => (string) ($values['appearance']['wrapper']['text_color'] ?? '#111111'),
-      'button_bg'       => (string) ($values['appearance']['wrapper']['button_bg'] ?? '#1e3a8a'),
-      'button_text'     => (string) ($values['appearance']['wrapper']['button_text'] ?? '#ffffff'),
+      'modal_bg' => (string) ($values['appearance']['wrapper']['modal_bg'] ?? '#ffffff'),
+      'text_color' => (string) ($values['appearance']['wrapper']['text_color'] ?? '#111111'),
+      'button_bg' => (string) ($values['appearance']['wrapper']['button_bg'] ?? '#1e3a8a'),
+      'button_text' => (string) ($values['appearance']['wrapper']['button_text'] ?? '#ffffff'),
     ];
 
     // If preset changed, trust the preset values (so user doesn't need to save twice).
