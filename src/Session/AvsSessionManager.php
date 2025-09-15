@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
  */
 class AvsSessionManager {
 
-  // 'passed' | 'denied' | null
+  // 'passed' | 'denied' | NULL
   public const KEY_STATE  = 'simpleavs.state';
   public const KEY_TOKENS = 'simpleavs.tokens';  /**
                                                   * Array<string,bool>.

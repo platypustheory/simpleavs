@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write   # allow the workflow to push auto-fixes
+  contents: write
 
 jobs:
   phpcs:
@@ -16,7 +16,7 @@ jobs:
       COMPOSER_NO_INTERACTION: "1"
       COMPOSER_NO_AUDIT: "1"
       COMPOSER_PROCESS_TIMEOUT: "0"
-      MODULE_PATH: "."   # scan the whole repo; change to subdir if you want
+      MODULE_PATH: "."
 
     steps:
       - name: Check out
@@ -31,48 +31,15 @@ jobs:
           coverage: none
           tools: composer
 
-      - name: Cache Composer downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.composer/cache
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
       - name: Install dev tools
-        run: |
-          composer install --no-progress --prefer-dist
+        run: composer install --no-progress --prefer-dist
 
-      # Normalize only module/text files, skip workflow files and binaries.
-      - name: Normalize text files (LF + UTF-8)
+      - name: Normalize text files
         run: |
           sudo apt-get update -y
           sudo apt-get install -y dos2unix
-          set -euo pipefail
-          export LC_ALL=C
-
-          # Build a list of text-ish files in the repo we care about.
-          # We explicitly skip the .github directory so we don't touch the workflow file itself.
-          mapfile -t FILES < <(git ls-files \
-            '*.php' '*.module' '*.inc' '*.install' '*.theme' '*.yml' '*.yaml' \
-            ':(exclude).github/*')
-
-          # Filter out anything that 'file' thinks is binary, then:
-          #  - convert CRLF->LF
-          #  - ensure UTF-8 (dropping illegal bytes to avoid iconv erroring the job)
-          for f in "${FILES[@]}"; do
-            # Skip if file disappeared (rare on PRs with renames)
-            [ -f "$f" ] || continue
-
-            enc=$(file -bi "$f" | awk -F'=' '{print tolower($NF)}')
-            case "$enc" in
-              *binary*) continue ;;
-            esac
-
-            dos2unix "$f" >/dev/null 2>&1 || true
-            # Only run iconv if it's not already UTF-8 (or we can just normalize again anyway).
-            iconv -f utf-8 -t utf-8 -c "$f" -o "${f}.tmp" && mv "${f}.tmp" "$f"
-          done
+          find . -type f \( -name "*.php" -o -name "*.module" -o -name "*.inc" -o -name "*.install" -o -name "*.yml" -o -name "*.yaml" \) -print0 \
+            | xargs -0 -I{} bash -lc 'dos2unix "{}" >/dev/null 2>&1 || true; iconv -f utf-8 -t utf-8 "{}" -o "{}".tmp && mv "{}".tmp "{}"'
 
       - name: Auto-fix with PHPCBF
         run: |
