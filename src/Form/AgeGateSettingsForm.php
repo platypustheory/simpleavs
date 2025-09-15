@@ -535,7 +535,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       'button_text' => (string) ($values['appearance']['wrapper']['button_text'] ?? '#ffffff'),
     ];
 
-    // If preset changed, trust the preset values (so user doesn't need to save twice).
+    // If preset changed, trust the preset values.
     if ($presetSel !== 'none' && $presetSel !== $prevPreset) {
       $presetVals = $this->presets()[$presetSel]['values'] ?? [];
       // Apply preset definitively on this submit.
