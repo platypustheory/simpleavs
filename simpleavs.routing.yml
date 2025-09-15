@@ -1,5 +1,5 @@
-simpleavs.admin_settings:
-  path: '/admin/config/people/simpleavs'
+simpleavs.settings:
+  path: '/admin/config/simpleavs'
   defaults:
     _form: '\Drupal\simpleavs\Form\AgeGateSettingsForm'
     _title: 'SimpleAVS'
@@ -12,9 +12,7 @@ simpleavs.verify:
     _controller: '\Drupal\simpleavs\Controller\AgeGateController::verify'
   requirements:
     _access: 'TRUE'
-  options:
-    _format: 'json'
-    no_cache: TRUE
+  options: { _format: 'json', no_cache: TRUE }
 
 simpleavs.token:
   path: '/simpleavs/token'
@@ -22,6 +20,4 @@ simpleavs.token:
     _controller: '\Drupal\simpleavs\Controller\AgeGateController::token'
   requirements:
     _access: 'TRUE'
-  options:
-    _format: 'json'
-    no_cache: TRUE
+  options: { _format: 'json', no_cache: TRUE }

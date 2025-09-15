@@ -119,7 +119,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     $enabled   = (bool) ($cfg->get('enabled') ?? FALSE);
     $method    = (string) ($cfg->get('method') ?? 'question');
     $min_age   = (int) ($cfg->get('min_age') ?? 18);
-    $frequency = (string) ($cfg->get('frequency') ?? 'never');
+    $frequency = (string) ($cfg->get('frequency') ?? 'session');
 
     $path_mode     = (string) ($cfg->get('path_mode') ?? 'exclude');
     $path_patterns = (string) ($cfg->get('path_patterns') ?? '');
@@ -199,7 +199,6 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#type' => 'select',
       '#title' => $this->t('Prompt frequency'),
       '#options' => [
-        'never'   => $this->t('Never (off)'),
         'session' => $this->t('Once per session'),
         'daily'   => $this->t('Once per day'),
         'weekly'  => $this->t('Once per week'),

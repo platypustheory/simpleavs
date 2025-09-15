@@ -8,8 +8,9 @@
  *   enabled: boolean
  *   method: "question" | "dob"
  *   min_age: number
- *   date_format: "mdy" | "dmy"          // ONLY these two now
+ *   date_format: "mdy" | "dmy"
  *   endpoints: { token: string, verify: string }
+ *   frequency: "never" | "session" | "daily" | "weekly" | "always"
  *   redirects: { success?: string, failure?: string }
  *   strings: {...} and appearance: {...} (optional theming/text)
  */
@@ -44,6 +45,51 @@
     if (!r.ok) throw new Error("HTTP " + r.status);
     if (ct.includes("application/json")) return r.json();
     return { ok:false, error:"Unexpected response." };
+  }
+
+  // ---------- frequency helpers ----------
+  const LS_KEY = "simpleavs:lastPass";
+  const SS_KEY = "simpleavs:sessionPass";
+
+  function nowMs() { return Date.now(); }
+  function ms(days) { return days * 24 * 60 * 60 * 1000; }
+
+  function lastPassMs() {
+    const v = localStorage.getItem(LS_KEY);
+    return v ? parseInt(v, 10) : 0;
+  }
+
+  function shouldPrompt(cfg) {
+    const freq = (cfg.frequency || "always").toLowerCase();
+    switch (freq) {
+      case "never":
+        return false;
+      case "always":
+        return true;
+      case "session":
+        return sessionStorage.getItem(SS_KEY) !== "1";
+      case "daily":
+        return (nowMs() - lastPassMs()) > ms(1);
+      case "weekly":
+        return (nowMs() - lastPassMs()) > ms(7);
+      default:
+        return true;
+    }
+  }
+
+  function markPassed(freq) {
+    switch ((freq || "always").toLowerCase()) {
+      case "session":
+        sessionStorage.setItem(SS_KEY, "1");
+        break;
+      case "daily":
+        localStorage.setItem(LS_KEY, String(nowMs()));
+        break;
+      case "weekly":
+        localStorage.setItem(LS_KEY, String(nowMs()));
+        break;
+      // always/never: nothing to persist
+    }
   }
 
   function buildBase(cfg) {
@@ -115,7 +161,6 @@
       let digits = (input.value.match(/\d/g) || []).join("").slice(0, 8);
       let out = "";
       if (fmt === "dmy") {
-        // DD/MM/YYYY -> positions 2, 4+2
         const d = digits.slice(0, 2);
         const m = digits.slice(2, 4);
         const y = digits.slice(4, 8);
@@ -123,7 +168,6 @@
         if (digits.length > 2) out += "/" + m;
         if (digits.length > 4) out += "/" + y;
       } else {
-        // mdy (default): MM/DD/YYYY
         const m = digits.slice(0, 2);
         const d = digits.slice(2, 4);
         const y = digits.slice(4, 8);
@@ -166,11 +210,39 @@
     return { input, submitBtn, fmt };
   }
 
+  // Normalize to YYYY-MM-DD given value and format (mdy|dmy).
+  function normalizeDob(val, fmt) {
+    if (!val) return null;
+    val = val.trim();
+    let digits = val.replace(/[^\d]/g, "");
+    if (digits.length !== 8) return null;
+
+    let m, d, y;
+    if (fmt === "dmy") {
+      d = digits.slice(0,2);
+      m = digits.slice(2,4);
+      y = digits.slice(4,8);
+    } else {
+      m = digits.slice(0,2);
+      d = digits.slice(2,4);
+      y = digits.slice(4,8);
+    }
+
+    const Yi = +y, Mi = +m, Di = +d;
+    const dt = new Date(Date.UTC(Yi, Mi-1, Di));
+    if (dt.getUTCFullYear() !== Yi || (dt.getUTCMonth()+1) !== Mi || dt.getUTCDate() !== Di) return null;
+
+    return `${y}-${m}-${d}`;
+  }
+
   // ---------- main behavior ----------
   Drupal.behaviors.simpleavsAgeGate = {
     attach(context) {
       const cfg = drupalSettings.simpleavs || {};
       if (!cfg.enabled) return;
+
+      // Respect frequency BEFORE doing anything.
+      if (!shouldPrompt(cfg)) return;
 
       const hosts = once("simpleavs-agegate", "body", context);
       if (!hosts.length) return;
@@ -204,8 +276,19 @@
         try {
           const res = await postForm(cfg.endpoints.verify, { token, ...data });
           if (res && res.ok) {
-            if (res.result === "passed" && cfg.redirects?.success) { window.location.href = cfg.redirects.success; return; }
-            if (res.result === "denied" && cfg.redirects?.failure) { window.location.href = cfg.redirects.failure; return; }
+            if (res.result === "passed") {
+              // Record the pass per configured frequency.
+              markPassed(cfg.frequency);
+              if (cfg.redirects?.success) { window.location.href = cfg.redirects.success; return; }
+              overlay.remove();
+              return;
+            }
+            if (res.result === "denied") {
+              if (cfg.redirects?.failure) { window.location.href = cfg.redirects.failure; return; }
+              overlay.remove();
+              return;
+            }
+            // Unknown but ok:true
             overlay.remove();
           } else {
             msg.textContent = (res && res.error) ? res.error : "Verification failed.";
@@ -225,23 +308,13 @@
 
       if ((cfg.method || "question") === "dob") {
         const { input, submitBtn, fmt } = buildDobUI(cfg, body);
-
         submitBtn.addEventListener("click", () => {
-          const raw = input.value.trim();
-          // Prefer digits-only if we have 8 digits; otherwise send as typed (with separators).
-          const digits = raw.replace(/\D+/g, "");
-          const toSend = (digits.length === 8) ? digits : raw;
-
-          // Debug: see exactly what is submitted from the modal.
-          console.log("[SimpleAVS] Submitting DOB:", toSend, "fmt:", fmt);
-
-          // Very light client-side sanity check (optional):
-          if (digits.length !== 8 && !/^\d{2}[\/.-]\d{2}[\/.-]\d{4}$/.test(raw)) {
+          const norm = normalizeDob(input.value, fmt);
+          if (!norm) {
             msg.textContent = cfg.strings?.dob_invalid_message || "Please enter a valid date of birth.";
             return;
           }
-
-          verify({ action: "dob", dob: toSend });
+          verify({ action: "dob", dob: norm });
         });
       } else {
         const { yesBtn, noBtn } = buildQuestionUI(cfg, body);

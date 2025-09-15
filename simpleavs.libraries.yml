@@ -5,7 +5,7 @@ agegate:
     js/dobmask.js: {}
   css:
     theme:
-      css/agegate.css: {}
+      css/agegate.css: { minified: true }
   dependencies:
     - core/drupal
     - core/once
