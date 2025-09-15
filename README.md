@@ -70,4 +70,4 @@ Current maintainers:
 
 Supporting organizations:
 
-- [Michael Goldsmith (Platypus Media](https://www.drupal.org/u/platypus-media) Created this module for you!
+- [Michael Goldsmith (Platypus Media)](https://www.drupal.org/u/platypus-media) Created this module for you!
