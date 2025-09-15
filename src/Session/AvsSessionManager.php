@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\simpleavs\Session;
 
 use Psr\Log\LoggerInterface;
@@ -7,20 +9,50 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 /**
- * Session + token manager for SimpleAVS.
+ * Session and one-time-token manager for SimpleAVS.
  */
 class AvsSessionManager {
 
-  // 'passed' | 'denied' | NULL
-  public const KEY_STATE  = 'simpleavs.state';
-  public const KEY_TOKENS = 'simpleavs.tokens';  /**
-                                                  * Array<string,bool>.
-                                                  */
+  /**
+   * Session key for AVS state: 'passed' | 'denied'.
+   *
+   * @var string
+   */
+  public const KEY_STATE = 'simpleavs.state';
 
+  /**
+   * Session key that holds issued one-time tokens.
+   *
+   * The value is an associative array of token strings mapped to TRUE.
+   *
+   * @var string
+   */
+  public const KEY_TOKENS = 'simpleavs.tokens';
+
+  /**
+   * Request stack service.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
   protected RequestStack $requestStack;
+
+  /**
+   * Session service.
+   *
+   * @var \Symfony\Component\HttpFoundation\Session\SessionInterface
+   */
   protected SessionInterface $session;
+
+  /**
+   * Logger service.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
   protected LoggerInterface $logger;
 
+  /**
+   * Constructs the session manager.
+   */
   public function __construct(
     RequestStack $request_stack,
     SessionInterface $session,
@@ -32,7 +64,7 @@ class AvsSessionManager {
   }
 
   /**
-   * Issue a one-time token bound to this session.
+   * Issues a one-time token bound to this session.
    */
   public function issueToken(): string {
     $token = bin2hex(random_bytes(16));
@@ -45,7 +77,10 @@ class AvsSessionManager {
   }
 
   /**
-   * Consume and invalidate a token. Returns TRUE if it existed.
+   * Consumes and invalidates a token.
+   *
+   * @return bool
+   *   TRUE if the token existed and was removed, FALSE otherwise.
    */
   public function consumeToken(string $token): bool {
     $tokens = $this->session->get(self::KEY_TOKENS, []);
@@ -59,7 +94,7 @@ class AvsSessionManager {
   }
 
   /**
-   * Mark this session as AVS passed.
+   * Marks this session as AVS passed.
    */
   public function setPassed(): void {
     $this->session->set(self::KEY_STATE, 'passed');
@@ -67,7 +102,7 @@ class AvsSessionManager {
   }
 
   /**
-   * Mark this session as AVS denied.
+   * Marks this session as AVS denied.
    */
   public function setDenied(): void {
     $this->session->set(self::KEY_STATE, 'denied');
@@ -75,14 +110,14 @@ class AvsSessionManager {
   }
 
   /**
-   * True if this session has already passed.
+   * Checks whether this session already passed AVS.
    */
   public function isPassed(): bool {
     return $this->session->get(self::KEY_STATE) === 'passed';
   }
 
   /**
-   * Clear all AVS data for this session.
+   * Clears all AVS data from this session.
    */
   public function clear(): void {
     $this->session->remove(self::KEY_STATE);
