@@ -12,10 +12,16 @@ use Drupal\Core\Form\FormStateInterface;
  */
 final class AgeGateSettingsForm extends ConfigFormBase {
 
+  /**
+   *
+   */
   public function getFormId(): string {
     return 'simpleavs_settings_form';
   }
 
+  /**
+   *
+   */
   protected function getEditableConfigNames(): array {
     return ['simpleavs.settings'];
   }
@@ -26,7 +32,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
   private function presets(): array {
     return [
       'none' => [
-        'label' => $this->t('— No preset (keep current values) —'),
+        'label' => $this->t(' No preset (keep current values) '),
         'values' => [],
       ],
       'light' => [
@@ -112,6 +118,9 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     return $current;
   }
 
+  /**
+   *
+   */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $cfg = $this->config('simpleavs.settings');
 
@@ -253,11 +262,11 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Text & labels'),
       '#open' => FALSE,
     ];
-    $def = function(string $k, string $fallback) use ($strings) {
+    $def = function (string $k, string $fallback) use ($strings) {
       return (string) ($strings[$k] ?? $fallback);
     };
 
-    // Always visible
+    // Always visible.
     $form['strings']['modal_title'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Modal title'),
@@ -284,7 +293,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#default_value' => $def('denied_message', 'You must be [age]+ to enter.'),
     ];
 
-    // Question-only strings
+    // Question-only strings.
     $form['strings']['question_text'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Question text'),
@@ -316,7 +325,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       ],
     ];
 
-    // DOB-only strings
+    // DOB-only strings.
     $form['strings']['dob_instruction'] = [
       '#type' => 'textfield',
       '#title' => $this->t('DOB instruction'),
@@ -353,7 +362,8 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#type' => 'details',
       '#title' => $this->t('Appearance'),
       '#open' => TRUE,
-      '#tree' => TRUE, // ensure nested values are preserved
+    // Ensure nested values are preserved.
+      '#tree' => TRUE,
     ];
 
     $presetOptions = [];
@@ -427,7 +437,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     $trigger = $form_state->getTriggeringElement();
     $selected = is_array($trigger) && isset($trigger['#value'])
       ? (string) $trigger['#value']
-      : (string) $form_state->getValue(['appearance','preset']);
+      : (string) $form_state->getValue(['appearance', 'preset']);
 
     $form_state->set('simpleavs_preset', $selected);
     $form_state->setRebuild();
@@ -435,6 +445,9 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     return $form['appearance']['wrapper'];
   }
 
+  /**
+   *
+   */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     foreach (['redirect_success', 'redirect_failure'] as $key) {
       $val = trim((string) $form_state->getValue($key));
@@ -449,6 +462,9 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     parent::validateForm($form, $form_state);
   }
 
+  /**
+   *
+   */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $values = $form_state->cleanValues()->getValues();
 
@@ -457,10 +473,11 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     $prevPreset     = (string) ($prevAppearance['preset'] ?? 'none');
 
     $save = [
-      'enabled'          => (bool)   $values['enabled'],
+      'enabled'          => (bool) $values['enabled'],
       'method'           => (string) $values['method'],
-      'min_age'          => (int)    $values['min_age'],
-      'date_format'      => (string) $values['date_format'], // 'mdy' | 'dmy'
+      'min_age'          => (int) $values['min_age'],
+    // 'mdy' | 'dmy'
+      'date_format'      => (string) $values['date_format'],
       'frequency'        => (string) $values['frequency'],
       'path_mode'        => (string) $values['path_mode'],
       'path_patterns'    => (string) $values['path_patterns'],
@@ -472,9 +489,9 @@ final class AgeGateSettingsForm extends ConfigFormBase {
 
     // Strings.
     foreach ([
-      'modal_title','question_text','yes_button','no_button',
-      'dob_instruction','dob_verify_button','dob_invalid_message',
-      'message_confirm','confirm_button','deny_button','denied_message',
+      'modal_title', 'question_text', 'yes_button', 'no_button',
+      'dob_instruction', 'dob_verify_button', 'dob_invalid_message',
+      'message_confirm', 'confirm_button', 'deny_button', 'denied_message',
     ] as $k) {
       $save['strings'][$k] = (string) ($values[$k] ?? '');
     }
@@ -483,7 +500,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     $presetSel = (string) $values['appearance']['preset'];
     $submitted = [
       'overlay_color'   => (string) ($values['appearance']['wrapper']['overlay_color'] ?? '#000000'),
-      'overlay_opacity' => (float)  ($values['appearance']['wrapper']['overlay_opacity'] ?? 0.85),
+      'overlay_opacity' => (float) ($values['appearance']['wrapper']['overlay_opacity'] ?? 0.85),
       'modal_bg'        => (string) ($values['appearance']['wrapper']['modal_bg'] ?? '#ffffff'),
       'text_color'      => (string) ($values['appearance']['wrapper']['text_color'] ?? '#111111'),
       'button_bg'       => (string) ($values['appearance']['wrapper']['button_bg'] ?? '#1e3a8a'),
@@ -493,7 +510,8 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     // If preset changed, trust the preset values (so user doesn't need to save twice).
     if ($presetSel !== 'none' && $presetSel !== $prevPreset) {
       $presetVals = $this->presets()[$presetSel]['values'] ?? [];
-      $appearance = $presetVals; // apply preset definitively on this submit
+      // Apply preset definitively on this submit.
+      $appearance = $presetVals;
     }
     else {
       // No change of preset: keep whatever the user submitted in the fields.
@@ -507,4 +525,5 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     parent::submitForm($form, $form_state);
     $this->messenger()->addStatus($this->t('SimpleAVS settings saved.'));
   }
+
 }

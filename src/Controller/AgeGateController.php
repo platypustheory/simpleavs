@@ -24,12 +24,17 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class AgeGateController extends ControllerBase {
 
-  /** @var \Psr\Log\LoggerInterface */
+  /**
+   * @var \Psr\Log\LoggerInterface */
   private $logger;
 
-  /** @var object */
+  /**
+   * @var object */
   private $sessionManager;
 
+  /**
+   *
+   */
   public static function create(ContainerInterface $container): self {
     $inst = new self();
     $inst->logger = $container->get('logger.channel.simpleavs');
@@ -64,20 +69,20 @@ final class AgeGateController extends ControllerBase {
   public function verify(Request $request): JsonResponse {
     try {
       // Accept either x-www-form-urlencoded or JSON payload.
-      $action = null;
-      $token  = null;
-      $dobRaw = null;
+      $action = NULL;
+      $token  = NULL;
+      $dobRaw = NULL;
 
       if (0 === strpos((string) $request->headers->get('Content-Type'), 'application/json')) {
-        $data = json_decode((string) $request->getContent(), true) ?: [];
+        $data = json_decode((string) $request->getContent(), TRUE) ?: [];
         $action = (string) ($data['action'] ?? '');
         $token  = (string) ($data['token'] ?? '');
-        $dobRaw = isset($data['dob']) ? (string) $data['dob'] : null;
+        $dobRaw = isset($data['dob']) ? (string) $data['dob'] : NULL;
       }
       else {
         $action = (string) $request->request->get('action', '');
         $token  = (string) $request->request->get('token', '');
-        $dobRaw = $request->request->has('dob') ? (string) $request->request->get('dob') : null;
+        $dobRaw = $request->request->has('dob') ? (string) $request->request->get('dob') : NULL;
       }
 
       if ($token === '') {
@@ -99,7 +104,7 @@ final class AgeGateController extends ControllerBase {
         $dateFormat = 'mdy';
       }
 
-      $payload = ['ok' => true];
+      $payload = ['ok' => TRUE];
 
       switch ($action) {
         case 'yes':
@@ -116,11 +121,11 @@ final class AgeGateController extends ControllerBase {
           if ($method !== 'dob') {
             return $this->jsonError('Unsupported action.', 400);
           }
-          if ($dobRaw === null || $dobRaw === '') {
+          if ($dobRaw === NULL || $dobRaw === '') {
             return $this->jsonError('DOB required.', 400);
           }
           $isoDob = $this->normalizeDob($dobRaw, $dateFormat);
-          if ($isoDob === null) {
+          if ($isoDob === NULL) {
             return $this->jsonError('Invalid DOB format.', 400);
           }
           $age = $this->calculateAgeFromIso($isoDob);
@@ -158,7 +163,7 @@ final class AgeGateController extends ControllerBase {
   private function normalizeDob(string $input, string $expected = 'mdy'): ?string {
     $s = trim($input);
     if ($s === '') {
-      return null;
+      return NULL;
     }
 
     // Digits-only path: MMDDYYYY (mdy) or DDMMYYYY (dmy).
@@ -169,7 +174,8 @@ final class AgeGateController extends ControllerBase {
         $m = (int) substr($digits, 2, 2);
         $y = (int) substr($digits, 4, 4);
       }
-      else { // mdy default
+      // Mdy default.
+      else {
         $m = (int) substr($digits, 0, 2);
         $d = (int) substr($digits, 2, 2);
         $y = (int) substr($digits, 4, 4);
@@ -177,7 +183,7 @@ final class AgeGateController extends ControllerBase {
       if ($m >= 1 && $m <= 12 && checkdate($m, $d, $y)) {
         return sprintf('%04d-%02d-%02d', $y, $m, $d);
       }
-      return null;
+      return NULL;
     }
 
     // Separated path: strict formats for the expected ordering.
@@ -193,7 +199,7 @@ final class AgeGateController extends ControllerBase {
       }
     }
 
-    return null;
+    return NULL;
   }
 
   /**
@@ -218,8 +224,11 @@ final class AgeGateController extends ControllerBase {
     return $res;
   }
 
+  /**
+   *
+   */
   private function jsonError(string $message, int $status = 400): JsonResponse {
-    return $this->json(['ok' => false, 'error' => $message], $status);
+    return $this->json(['ok' => FALSE, 'error' => $message], $status);
   }
 
 }

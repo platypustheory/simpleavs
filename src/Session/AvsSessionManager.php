@@ -11,8 +11,11 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
  */
 class AvsSessionManager {
 
-  public const KEY_STATE  = 'simpleavs.state';   // 'passed' | 'denied' | null
-  public const KEY_TOKENS = 'simpleavs.tokens';  // array<string,bool>
+  // 'passed' | 'denied' | null
+  public const KEY_STATE  = 'simpleavs.state';
+  public const KEY_TOKENS = 'simpleavs.tokens';  /**
+                                                  * Array<string,bool>.
+                                                  */
 
   protected RequestStack $requestStack;
   protected SessionInterface $session;
@@ -21,7 +24,7 @@ class AvsSessionManager {
   public function __construct(
     RequestStack $request_stack,
     SessionInterface $session,
-    LoggerInterface $logger
+    LoggerInterface $logger,
   ) {
     $this->requestStack = $request_stack;
     $this->session = $session;
@@ -34,9 +37,10 @@ class AvsSessionManager {
   public function issueToken(): string {
     $token = bin2hex(random_bytes(16));
     $tokens = $this->session->get(self::KEY_TOKENS, []);
-    $tokens[$token] = true;
+    $tokens[$token] = TRUE;
     $this->session->set(self::KEY_TOKENS, $tokens);
-    $this->session->save(); // ensure persistence
+    // Ensure persistence.
+    $this->session->save();
     return $token;
   }
 
@@ -46,12 +50,12 @@ class AvsSessionManager {
   public function consumeToken(string $token): bool {
     $tokens = $this->session->get(self::KEY_TOKENS, []);
     if (!isset($tokens[$token])) {
-      return false;
+      return FALSE;
     }
     unset($tokens[$token]);
     $this->session->set(self::KEY_TOKENS, $tokens);
     $this->session->save();
-    return true;
+    return TRUE;
   }
 
   /**
@@ -85,4 +89,5 @@ class AvsSessionManager {
     $this->session->remove(self::KEY_TOKENS);
     $this->session->save();
   }
+
 }
