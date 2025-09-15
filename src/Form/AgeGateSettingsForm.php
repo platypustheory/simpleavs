@@ -249,8 +249,10 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#type' => 'textarea',
       '#title' => $this->t('Pages'),
       '#default_value' => $path_patterns,
-      // This is a long string, but warning-only. Keeping it readable.
-      '#description' => $this->t('One path per line. Use %front for the front page. Wildcards like "blog/*" are allowed.', ['%front' => '<front>']),
+      '#description' => $this->t(
+      'One path per line. Use %front for front page. Wildcards like blog/* allowed.',
+      ['%front' => '<front>']
+    ),
     ];
 
     // --- Redirects ---
