@@ -1,5 +1,5 @@
 /**
- * SimpleAVS front-end — Drupal 10.
+ * SimpleAVS front-end - Drupal 10.
  * Modes:
  *  - method = "question": Yes/No buttons
  *  - method = "dob": typed DOB with auto-formatting
