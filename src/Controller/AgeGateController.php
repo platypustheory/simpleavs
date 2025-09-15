@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\simpleavs\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\simpleavs\Session\AvsSessionManager;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,39 +14,48 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * AJAX endpoints for SimpleAVS.
  *
- * Routes:
- *  - /simpleavs/token   (GET)   -> token()
- *  - /simpleavs/verify  (POST)  -> verify()
- *
- * Relies on AvsSessionManager methods:
- *  - issueToken(): string
- *  - consumeToken(string $token): bool   (one-time)
- *  - setPassed(): void
- *  - setDenied(): void
+ * Routes exposed:
+ * - /simpleavs/token    (GET)   -> token()
+ * - /simpleavs/verify   (POST)  -> verify()
  */
 final class AgeGateController extends ControllerBase {
 
   /**
-   * @var \Psr\Log\LoggerInterface */
-  private $logger;
-
-  /**
-   * @var object */
-  private $sessionManager;
-
-  /**
+   * Channel logger.
    *
+   * @var \Psr\Log\LoggerInterface
+   */
+  private LoggerInterface $logger;
+
+  /**
+   * Manages AVS session state and one-time tokens.
+   *
+   * @var \Drupal\simpleavs\Session\AvsSessionManager
+   */
+  private AvsSessionManager $sessionManager;
+
+  /**
+   * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
+    /** @var \Psr\Log\LoggerInterface $logger */
+    $logger = $container->get('logger.channel.simpleavs');
+    /** @var \Drupal\simpleavs\Session\AvsSessionManager $manager */
+    $manager = $container->get('simpleavs.session_manager');
+
     $inst = new self();
-    $inst->logger = $container->get('logger.channel.simpleavs');
-    $inst->sessionManager = $container->get('simpleavs.session_manager');
+    $inst->logger = $logger;
+    $inst->sessionManager = $manager;
     return $inst;
   }
 
   /**
-   * GET /simpleavs/token
    * Returns a one-time token as JSON.
+   *
+   * Example response:
+   * @code
+   * {"token":"abcdef1234..."}
+   * @endcode
    */
   public function token(Request $request): JsonResponse {
     try {
@@ -63,26 +74,31 @@ final class AgeGateController extends ControllerBase {
   }
 
   /**
-   * POST /simpleavs/verify
-   * Accepts: action=yes|no|dob, token=..., dob given as mdy/dmy (digits-only or with separators).
+   * Verifies an action: "yes", "no", or "dob".
+   *
+   * Accepts either `application/x-www-form-urlencoded` or `application/json`
+   * with fields: `action=yes|no|dob`, `token=...`, and optional `dob`.
    */
   public function verify(Request $request): JsonResponse {
     try {
       // Accept either x-www-form-urlencoded or JSON payload.
       $action = NULL;
-      $token  = NULL;
+      $token = NULL;
       $dobRaw = NULL;
 
-      if (0 === strpos((string) $request->headers->get('Content-Type'), 'application/json')) {
+      $content_type = (string) $request->headers->get('Content-Type');
+      if (strpos($content_type, 'application/json') === 0) {
         $data = json_decode((string) $request->getContent(), TRUE) ?: [];
         $action = (string) ($data['action'] ?? '');
-        $token  = (string) ($data['token'] ?? '');
+        $token = (string) ($data['token'] ?? '');
         $dobRaw = isset($data['dob']) ? (string) $data['dob'] : NULL;
       }
       else {
         $action = (string) $request->request->get('action', '');
-        $token  = (string) $request->request->get('token', '');
-        $dobRaw = $request->request->has('dob') ? (string) $request->request->get('dob') : NULL;
+        $token = (string) $request->request->get('token', '');
+        $dobRaw = $request->request->has('dob')
+          ? (string) $request->request->get('dob')
+          : NULL;
       }
 
       if ($token === '') {
@@ -96,12 +112,12 @@ final class AgeGateController extends ControllerBase {
 
       $cfg = $this->config('simpleavs.settings');
       $method = (string) ($cfg->get('method') ?? 'question');
-      $minAge = (int) ($cfg->get('min_age') ?? 18);
+      $min_age = (int) ($cfg->get('min_age') ?? 18);
 
       // Only support 'mdy' or 'dmy'. Anything else falls back to 'mdy'.
-      $dateFormat = (string) ($cfg->get('date_format') ?? 'mdy');
-      if ($dateFormat !== 'dmy' && $dateFormat !== 'mdy') {
-        $dateFormat = 'mdy';
+      $date_format = (string) ($cfg->get('date_format') ?? 'mdy');
+      if ($date_format !== 'dmy' && $date_format !== 'mdy') {
+        $date_format = 'mdy';
       }
 
       $payload = ['ok' => TRUE];
@@ -124,13 +140,13 @@ final class AgeGateController extends ControllerBase {
           if ($dobRaw === NULL || $dobRaw === '') {
             return $this->jsonError('DOB required.', 400);
           }
-          $isoDob = $this->normalizeDob($dobRaw, $dateFormat);
-          if ($isoDob === NULL) {
+          $iso = $this->normalizeDob($dobRaw, $date_format);
+          if ($iso === NULL) {
             return $this->jsonError('Invalid DOB format.', 400);
           }
-          $age = $this->calculateAgeFromIso($isoDob);
+          $age = $this->calculateAgeFromIso($iso);
           $payload['age'] = $age;
-          if ($age >= $minAge) {
+          if ($age >= $min_age) {
             $this->sessionManager->setPassed();
             $payload['result'] = 'passed';
           }
@@ -157,8 +173,18 @@ final class AgeGateController extends ControllerBase {
   }
 
   /**
-   * Normalize DOB to 'Y-m-d' for 'mdy' or 'dmy'.
-   * Accepts digits-only (e.g., 09151990 / 15091990) or separated (/, -, .).
+   * Normalizes a user DOB to ISO 'Y-m-d'.
+   *
+   * Accepts digits-only (e.g., 09151990 / 15091990) or separated input using
+   * '/', '-' or '.' following the expected ordering ('mdy' or 'dmy').
+   *
+   * @param string $input
+   *   Raw user input.
+   * @param string $expected
+   *   Expected order: 'mdy' or 'dmy'. Defaults to 'mdy'.
+   *
+   * @return string|null
+   *   ISO date 'Y-m-d' or NULL if invalid.
    */
   private function normalizeDob(string $input, string $expected = 'mdy'): ?string {
     $s = trim($input);
@@ -174,8 +200,8 @@ final class AgeGateController extends ControllerBase {
         $m = (int) substr($digits, 2, 2);
         $y = (int) substr($digits, 4, 4);
       }
-      // Mdy default.
       else {
+        // Default: mdy.
         $m = (int) substr($digits, 0, 2);
         $d = (int) substr($digits, 2, 2);
         $y = (int) substr($digits, 4, 4);
@@ -203,17 +229,32 @@ final class AgeGateController extends ControllerBase {
   }
 
   /**
-   * Age (years) for an ISO date.
+   * Computes age in years for an ISO date.
+   *
+   * @param string $isoDate
+   *   Date string in 'Y-m-d'.
+   *
+   * @return int
+   *   Non-negative integer age.
    */
   private function calculateAgeFromIso(string $isoDate): int {
-    $dob = \DateTimeImmutable::createFromFormat('!Y-m-d', $isoDate) ?: new \DateTimeImmutable('@0');
+    $dob = \DateTimeImmutable::createFromFormat('!Y-m-d', $isoDate)
+      ?: new \DateTimeImmutable('@0');
     $now = new \DateTimeImmutable('today');
     $diff = $dob->diff($now);
     return max(0, (int) $diff->y);
   }
 
   /**
-   * JSON helper with no-cache headers.
+   * Builds a JSON response with no-cache headers.
+   *
+   * @param array $payload
+   *   Data to encode as JSON.
+   * @param int $status
+   *   HTTP status code.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response object.
    */
   private function json(array $payload, int $status = 200): JsonResponse {
     $res = new JsonResponse($payload, $status);
@@ -225,7 +266,15 @@ final class AgeGateController extends ControllerBase {
   }
 
   /**
+   * Convenience wrapper for JSON error responses.
    *
+   * @param string $message
+   *   Error message.
+   * @param int $status
+   *   HTTP status code (default 400).
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON error response.
    */
   private function jsonError(string $message, int $status = 400): JsonResponse {
     return $this->json(['ok' => FALSE, 'error' => $message], $status);
