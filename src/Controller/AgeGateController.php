@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\simpleavs\Controller;
 
-use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\simpleavs\Session\AvsSessionManager;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -18,21 +19,32 @@ use Symfony\Component\HttpFoundation\Request;
  * - /simpleavs/token    (GET)   -> token()
  * - /simpleavs/verify   (POST)  -> verify()
  */
-final class AgeGateController extends ControllerBase {
+final class AgeGateController implements ContainerInjectionInterface {
 
   /**
    * Channel logger.
-   *
-   * @var \Psr\Log\LoggerInterface
    */
   private LoggerInterface $logger;
 
   /**
    * Manages AVS session state and one-time tokens.
-   *
-   * @var \Drupal\simpleavs\Session\AvsSessionManager
    */
   private AvsSessionManager $sessionManager;
+
+  /**
+   * Config factory, to read simpleavs.settings.
+   */
+  private ConfigFactoryInterface $configFactory;
+
+  public function __construct(
+    LoggerInterface $logger,
+    AvsSessionManager $sessionManager,
+    ConfigFactoryInterface $configFactory,
+  ) {
+    $this->logger = $logger;
+    $this->sessionManager = $sessionManager;
+    $this->configFactory = $configFactory;
+  }
 
   /**
    * {@inheritdoc}
@@ -42,20 +54,14 @@ final class AgeGateController extends ControllerBase {
     $logger = $container->get('logger.channel.simpleavs');
     /** @var \Drupal\simpleavs\Session\AvsSessionManager $manager */
     $manager = $container->get('simpleavs.session_manager');
+    /** @var \Drupal\Core\Config\ConfigFactoryInterface $config_factory */
+    $config_factory = $container->get('config.factory');
 
-    $inst = new self();
-    $inst->logger = $logger;
-    $inst->sessionManager = $manager;
-    return $inst;
+    return new self($logger, $manager, $config_factory);
   }
 
   /**
    * Returns a one-time token as JSON.
-   *
-   * Example response:
-   * @code
-   * {"token":"abcdef1234..."}
-   * @endcode
    */
   public function token(Request $request): JsonResponse {
     try {
@@ -110,7 +116,7 @@ final class AgeGateController extends ControllerBase {
         return $this->jsonError('Invalid token.', 400);
       }
 
-      $cfg = $this->config('simpleavs.settings');
+      $cfg = $this->configFactory->get('simpleavs.settings');
       $method = (string) ($cfg->get('method') ?? 'question');
       $min_age = (int) ($cfg->get('min_age') ?? 18);
 
@@ -174,17 +180,6 @@ final class AgeGateController extends ControllerBase {
 
   /**
    * Normalizes a user DOB to ISO 'Y-m-d'.
-   *
-   * Accepts digits-only (e.g., 09151990 / 15091990) or separated input using
-   * '/', '-' or '.' following the expected ordering ('mdy' or 'dmy').
-   *
-   * @param string $input
-   *   Raw user input.
-   * @param string $expected
-   *   Expected order: 'mdy' or 'dmy'. Defaults to 'mdy'.
-   *
-   * @return string|null
-   *   ISO date 'Y-m-d' or NULL if invalid.
    */
   private function normalizeDob(string $input, string $expected = 'mdy'): ?string {
     $s = trim($input);
@@ -230,12 +225,6 @@ final class AgeGateController extends ControllerBase {
 
   /**
    * Computes age in years for an ISO date.
-   *
-   * @param string $isoDate
-   *   Date string in 'Y-m-d'.
-   *
-   * @return int
-   *   Non-negative integer age.
    */
   private function calculateAgeFromIso(string $isoDate): int {
     $dob = \DateTimeImmutable::createFromFormat('!Y-m-d', $isoDate)
@@ -247,14 +236,6 @@ final class AgeGateController extends ControllerBase {
 
   /**
    * Builds a JSON response with no-cache headers.
-   *
-   * @param array $payload
-   *   Data to encode as JSON.
-   * @param int $status
-   *   HTTP status code.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   JSON response object.
    */
   private function json(array $payload, int $status = 200): JsonResponse {
     $res = new JsonResponse($payload, $status);
@@ -267,14 +248,6 @@ final class AgeGateController extends ControllerBase {
 
   /**
    * Convenience wrapper for JSON error responses.
-   *
-   * @param string $message
-   *   Error message.
-   * @param int $status
-   *   HTTP status code (default 400).
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   JSON error response.
    */
   private function jsonError(string $message, int $status = 400): JsonResponse {
     return $this->json(['ok' => FALSE, 'error' => $message], $status);
