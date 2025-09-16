@@ -3,7 +3,9 @@
   "description": "Simple, cookie/session-based age verification gate with themable modal.",
   "type": "drupal-module",
   "license": "GPL-2.0-or-later",
-  "require": {},
+  "require": {
+    "drupal/core": "^10.2 || ^11"
+  },
   "require-dev": {
     "squizlabs/php_codesniffer": "^3.9",
     "drupal/coder": "^8.3",
