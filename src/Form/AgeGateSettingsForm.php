@@ -252,7 +252,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#description' => $this->t(
       'One path per line. Use %front for front page. Wildcards like blog/* allowed.',
       ['%front' => '<front>']
-    ),
+      ),
     ];
 
     // --- Redirects ---
