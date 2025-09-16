@@ -1,6 +1,6 @@
 name: SimpleAVS
 type: module
 description: 'Simple, cookie/session-based age verification gate with themable modal.'
-core_version_requirement: ^10 || ^11
+core_version_requirement: '^10.2 || ^11'
 package: Age Verification
 configure: simpleavs.settings
