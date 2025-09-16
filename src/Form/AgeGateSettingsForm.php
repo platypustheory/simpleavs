@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\simpleavs\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
-use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Form/FormStateInterface;
 
 /**
  * Settings form for SimpleAVS.
@@ -111,53 +111,11 @@ final class AgeGateSettingsForm extends ConfigFormBase {
   }
 
   /**
-   * Applies a preset array onto the given appearance array.
-   *
-   * @param string $key
-   *   Preset key (e.g., 'light').
-   * @param array $current
-   *   Current appearance values.
-   *
-   * @return array
-   *   Merged appearance values.
-   */
-  private function applyPreset(string $key, array $current): array {
-    $presets = $this->presets();
-    if (!isset($presets[$key]) || empty($presets[$key]['values'])) {
-      return $current;
-    }
-    foreach ($presets[$key]['values'] as $k => $v) {
-      $current[$k] = $v;
-    }
-    return $current;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $cfg = $this->config('simpleavs.settings');
-
-    // Safe reads with sane defaults.
-    $enabled = (bool) ($cfg->get('enabled') ?? FALSE);
-    $method = (string) ($cfg->get('method') ?? 'question');
-    $min_age = (int) ($cfg->get('min_age') ?? 18);
-    $frequency = (string) ($cfg->get('frequency') ?? 'session');
-
-    $path_mode = (string) ($cfg->get('path_mode') ?? 'exclude');
-    $path_patterns = (string) ($cfg->get('path_patterns') ?? '');
-
-    $redirect_success = (string) ($cfg->get('redirect_success') ?? '');
-    $redirect_failure = (string) ($cfg->get('redirect_failure') ?? '');
-
-    $strings = $cfg->get('strings') ?? [];
-    $appearanceSaved = $cfg->get('appearance') ?? [];
-
-    // Date format (only mdy|dmy).
-    $date_format = (string) ($cfg->get('date_format') ?? 'mdy');
-    if ($date_format !== 'dmy' && $date_format !== 'mdy') {
-      $date_format = 'mdy';
-    }
+    // Only used to know the currently saved preset for first render.
+    $appearanceSaved = $this->config('simpleavs.settings')->get('appearance') ?? [];
 
     // Preset selection + preview (AJAX).
     $presets = $this->presets();
@@ -172,15 +130,12 @@ final class AgeGateSettingsForm extends ConfigFormBase {
         ?? (string) ($appearanceSaved['preset'] ?? 'none');
     }
 
-    // Apply PRESET OVER the saved/current appearance for preview.
-    $appearance = $this->applyPreset($selectedPreset, $appearanceSaved);
-
     // --- Core controls ---
     $form['enabled'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enable SimpleAVS'),
-      '#default_value' => $enabled,
       '#description' => $this->t('Leave unchecked until you finish configuring.'),
+      '#config_target' => 'simpleavs.settings:enabled',
     ];
 
     $form['method'] = [
@@ -190,15 +145,15 @@ final class AgeGateSettingsForm extends ConfigFormBase {
         'question' => $this->t('Simple question (Yes/No)'),
         'dob' => $this->t('Date of birth'),
       ],
-      '#default_value' => $method,
+      '#config_target' => 'simpleavs.settings:method',
     ];
 
     $form['min_age'] = [
       '#type' => 'number',
       '#title' => $this->t('Minimum age'),
       '#min' => 0,
-      '#default_value' => $min_age,
       '#required' => TRUE,
+      '#config_target' => 'simpleavs.settings:min_age',
     ];
 
     // Show only when method = dob.
@@ -210,7 +165,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
         'mdy' => $this->t('MM/DD/YYYY'),
         'dmy' => $this->t('DD/MM/YYYY'),
       ],
-      '#default_value' => $date_format,
+      '#config_target' => 'simpleavs.settings:date_format',
       '#states' => [
         'visible' => [
           ':input[name="method"]' => ['value' => 'dob'],
@@ -227,7 +182,7 @@ final class AgeGateSettingsForm extends ConfigFormBase {
         'weekly' => $this->t('Once per week'),
         'always' => $this->t('On every page load'),
       ],
-      '#default_value' => $frequency,
+      '#config_target' => 'simpleavs.settings:frequency',
     ];
 
     // --- Path targeting ---
@@ -243,16 +198,16 @@ final class AgeGateSettingsForm extends ConfigFormBase {
         'include' => $this->t('Only the following pages'),
         'exclude' => $this->t('All pages except the following'),
       ],
-      '#default_value' => $path_mode,
+      '#config_target' => 'simpleavs.settings:path_mode',
     ];
     $form['paths']['path_patterns'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Pages'),
-      '#default_value' => $path_patterns,
       '#description' => $this->t(
-      'One path per line. Use %front for front page. Wildcards like blog/* allowed.',
-      ['%front' => '<front>']
+        'One path per line. Use %front for front page. Wildcards like blog/* allowed.',
+        ['%front' => '<front>']
       ),
+      '#config_target' => 'simpleavs.settings:path_patterns',
     ];
 
     // --- Redirects ---
@@ -264,13 +219,13 @@ final class AgeGateSettingsForm extends ConfigFormBase {
     $form['redirects']['redirect_success'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Redirect on success (optional)'),
-      '#default_value' => $redirect_success,
       '#description' => $this->t('Internal path ie. /node/1, full URL or leave blank.'),
+      '#config_target' => 'simpleavs.settings:redirect_success',
     ];
     $form['redirects']['redirect_failure'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Redirect on failure (optional)'),
-      '#default_value' => $redirect_failure,
+      '#config_target' => 'simpleavs.settings:redirect_failure',
     ];
 
     // --- Strings ---
@@ -279,100 +234,50 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Text & labels'),
       '#open' => FALSE,
     ];
-    $def = function (string $k, string $fallback) use ($strings) {
-      return (string) ($strings[$k] ?? $fallback);
-    };
+    foreach ([
+      'modal_title',
+      'message_confirm',
+      'confirm_button',
+      'deny_button',
+      'denied_message',
+      'question_text',
+      'yes_button',
+      'no_button',
+      'dob_instruction',
+      'dob_verify_button',
+      'dob_invalid_message',
+    ] as $k) {
+      $title = match ($k) {
+        'modal_title' => $this->t('Modal title'),
+        'message_confirm' => $this->t('Confirmation message'),
+        'confirm_button' => $this->t('Confirm button'),
+        'deny_button' => $this->t('Deny button'),
+        'denied_message' => $this->t('Denied message'),
+        'question_text' => $this->t('Question text'),
+        'yes_button' => $this->t('Yes button'),
+        'no_button' => $this->t('No button'),
+        'dob_instruction' => $this->t('DOB instruction'),
+        'dob_verify_button' => $this->t('DOB verify button'),
+        'dob_invalid_message' => $this->t('DOB invalid message'),
+        default => $this->t(ucwords(str_replace('_', ' ', $k))),
+      };
 
-    // Always visible.
-    $form['strings']['modal_title'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Modal title'),
-      '#default_value' => $def('modal_title', 'Age Verification Required'),
-    ];
-    $form['strings']['message_confirm'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Confirmation message'),
-      '#default_value' => $def('message_confirm', 'This site requires you to be at least [age] years old.'),
-    ];
-    $form['strings']['confirm_button'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Confirm button'),
-      '#default_value' => $def('confirm_button', 'Enter'),
-    ];
-    $form['strings']['deny_button'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Deny button'),
-      '#default_value' => $def('deny_button', 'Leave'),
-    ];
-    $form['strings']['denied_message'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Denied message'),
-      '#default_value' => $def('denied_message', 'You must be [age]+ to enter.'),
-    ];
+      $element = [
+        '#type' => 'textfield',
+        '#title' => $title,
+        '#config_target' => "simpleavs.settings:strings.$k",
+      ];
 
-    // Question-only strings.
-    $form['strings']['question_text'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Question text'),
-      '#default_value' => $def('question_text', 'Are you over the age of [age]?'),
-      '#states' => [
-        'visible' => [
-          ':input[name="method"]' => ['value' => 'question'],
-        ],
-      ],
-    ];
-    $form['strings']['yes_button'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Yes button'),
-      '#default_value' => $def('yes_button', 'Yes'),
-      '#states' => [
-        'visible' => [
-          ':input[name="method"]' => ['value' => 'question'],
-        ],
-      ],
-    ];
-    $form['strings']['no_button'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('No button'),
-      '#default_value' => $def('no_button', 'No'),
-      '#states' => [
-        'visible' => [
-          ':input[name="method"]' => ['value' => 'question'],
-        ],
-      ],
-    ];
+      // Visibility for question/dob-specific strings:
+      if (in_array($k, ['question_text', 'yes_button', 'no_button'], TRUE)) {
+        $element['#states'] = ['visible' => [':input[name="method"]' => ['value' => 'question']]];
+      }
+      elseif (in_array($k, ['dob_instruction', 'dob_verify_button', 'dob_invalid_message'], TRUE)) {
+        $element['#states'] = ['visible' => [':input[name="method"]' => ['value' => 'dob']]];
+      }
 
-    // DOB-only strings.
-    $form['strings']['dob_instruction'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('DOB instruction'),
-      '#default_value' => $def('dob_instruction', 'Please enter your date of birth to verify your age:'),
-      '#states' => [
-        'visible' => [
-          ':input[name="method"]' => ['value' => 'dob'],
-        ],
-      ],
-    ];
-    $form['strings']['dob_verify_button'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('DOB verify button'),
-      '#default_value' => $def('dob_verify_button', 'Verify'),
-      '#states' => [
-        'visible' => [
-          ':input[name="method"]' => ['value' => 'dob'],
-        ],
-      ],
-    ];
-    $form['strings']['dob_invalid_message'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('DOB invalid message'),
-      '#default_value' => $def('dob_invalid_message', 'Please enter a valid date of birth.'),
-      '#states' => [
-        'visible' => [
-          ':input[name="method"]' => ['value' => 'dob'],
-        ],
-      ],
-    ];
+      $form['strings'][$k] = $element;
+    }
 
     // --- Appearance + Preset (AJAX preview) ---
     $form['appearance'] = [
@@ -392,8 +297,8 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#type' => 'select',
       '#title' => $this->t('Preset'),
       '#options' => $presetOptions,
-      '#default_value' => $selectedPreset,
       '#description' => $this->t('Choosing a preset will populate the fields below. You can still tweak any value.'),
+      '#config_target' => 'simpleavs.settings:appearance.preset',
       '#ajax' => [
         'callback' => '::presetAjax',
         'wrapper' => 'simpleavs-appearance-wrapper',
@@ -407,12 +312,11 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#tree' => TRUE,
     ];
 
-    $app = fn(string $k, $fallback) => $appearance[$k] ?? $fallback;
-
+    // Map appearance controls directly to config keys.
     $form['appearance']['wrapper']['overlay_color'] = [
       '#type' => 'color',
       '#title' => $this->t('Overlay color'),
-      '#default_value' => (string) $app('overlay_color', '#000000'),
+      '#config_target' => 'simpleavs.settings:appearance.overlay_color',
     ];
     $form['appearance']['wrapper']['overlay_opacity'] = [
       '#type' => 'number',
@@ -420,27 +324,27 @@ final class AgeGateSettingsForm extends ConfigFormBase {
       '#step' => 0.01,
       '#min' => 0,
       '#max' => 1,
-      '#default_value' => (float) $app('overlay_opacity', 0.85),
+      '#config_target' => 'simpleavs.settings:appearance.overlay_opacity',
     ];
     $form['appearance']['wrapper']['modal_bg'] = [
       '#type' => 'color',
       '#title' => $this->t('Modal background'),
-      '#default_value' => (string) $app('modal_bg', '#ffffff'),
+      '#config_target' => 'simpleavs.settings:appearance.modal_bg',
     ];
     $form['appearance']['wrapper']['text_color'] = [
       '#type' => 'color',
       '#title' => $this->t('Text color'),
-      '#default_value' => (string) $app('text_color', '#111111'),
+      '#config_target' => 'simpleavs.settings:appearance.text_color',
     ];
     $form['appearance']['wrapper']['button_bg'] = [
       '#type' => 'color',
       '#title' => $this->t('Button background'),
-      '#default_value' => (string) $app('button_bg', '#1e3a8a'),
+      '#config_target' => 'simpleavs.settings:appearance.button_bg',
     ];
     $form['appearance']['wrapper']['button_text'] = [
       '#type' => 'color',
       '#title' => $this->t('Button text'),
-      '#default_value' => (string) $app('button_text', '#ffffff'),
+      '#config_target' => 'simpleavs.settings:appearance.button_text',
     ];
 
     return parent::buildForm($form, $form_state);
@@ -453,11 +357,16 @@ final class AgeGateSettingsForm extends ConfigFormBase {
    *   The render array for the appearance wrapper container.
    */
   public function presetAjax(array &$form, FormStateInterface $form_state): array {
-    // Read from triggering element to avoid stale values during AJAX.
-    $trigger = $form_state->getTriggeringElement();
-    $selected = is_array($trigger) && isset($trigger['#value'])
-      ? (string) $trigger['#value']
-      : (string) $form_state->getValue(['appearance', 'preset']);
+    $selected = (string) ($form_state->getValue(['appearance', 'preset']) ?? 'none');
+    $presets = $this->presets();
+    $values = $presets[$selected]['values'] ?? [];
+
+    // Push chosen preset values into the live form for immediate preview.
+    foreach ($values as $k => $v) {
+      if (isset($form['appearance']['wrapper'][$k])) {
+        $form['appearance']['wrapper'][$k]['#value'] = $v;
+      }
+    }
 
     $form_state->set('simpleavs_preset', $selected);
     $form_state->setRebuild();
@@ -484,72 +393,20 @@ final class AgeGateSettingsForm extends ConfigFormBase {
 
   /**
    * {@inheritdoc}
+   *
+   * Only applies preset values into the submitted form state.
+   * The parent will persist everything via #config_target.
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $values = $form_state->cleanValues()->getValues();
+    $selected = (string) ($form_state->getValue(['appearance', 'preset']) ?? 'none');
 
-    // Current saved appearance to compare prior preset.
-    $prevAppearance = $this->config('simpleavs.settings')->get('appearance') ?? [];
-    $prevPreset = (string) ($prevAppearance['preset'] ?? 'none');
-
-    $save = [
-      'enabled' => (bool) $values['enabled'],
-      'method' => (string) $values['method'],
-      'min_age' => (int) $values['min_age'],
-      // 'mdy' | 'dmy'.
-      'date_format' => (string) $values['date_format'],
-      'frequency' => (string) $values['frequency'],
-      'path_mode' => (string) $values['path_mode'],
-      'path_patterns' => (string) $values['path_patterns'],
-      'redirect_success' => (string) $values['redirect_success'],
-      'redirect_failure' => (string) $values['redirect_failure'],
-      'strings' => [],
-      'appearance' => [],
-    ];
-
-    // Strings.
-    foreach ([
-      'modal_title',
-      'question_text',
-      'yes_button',
-      'no_button',
-      'dob_instruction',
-      'dob_verify_button',
-      'dob_invalid_message',
-      'message_confirm',
-      'confirm_button',
-      'deny_button',
-      'denied_message',
-    ] as $k) {
-      $save['strings'][$k] = (string) ($values[$k] ?? '');
+    if ($selected !== 'none') {
+      $values = $this->presets()[$selected]['values'] ?? [];
+      foreach ($values as $k => $v) {
+        $form_state->setValue(['appearance', 'wrapper', $k], $v);
+      }
     }
 
-    // Figure out appearance from either the preset or submitted fields.
-    $presetSel = (string) $values['appearance']['preset'];
-    $submitted = [
-      'overlay_color' => (string) ($values['appearance']['wrapper']['overlay_color'] ?? '#000000'),
-      'overlay_opacity' => (float) ($values['appearance']['wrapper']['overlay_opacity'] ?? 0.85),
-      'modal_bg' => (string) ($values['appearance']['wrapper']['modal_bg'] ?? '#ffffff'),
-      'text_color' => (string) ($values['appearance']['wrapper']['text_color'] ?? '#111111'),
-      'button_bg' => (string) ($values['appearance']['wrapper']['button_bg'] ?? '#1e3a8a'),
-      'button_text' => (string) ($values['appearance']['wrapper']['button_text'] ?? '#ffffff'),
-    ];
-
-    // If preset changed, trust the preset values.
-    if ($presetSel !== 'none' && $presetSel !== $prevPreset) {
-      $presetVals = $this->presets()[$presetSel]['values'] ?? [];
-      // Apply preset definitively on this submit.
-      $appearance = $presetVals;
-    }
-    else {
-      // No change of preset: keep whatever the user submitted in the fields.
-      $appearance = $submitted;
-    }
-
-    // Persist.
-    $save['appearance'] = $appearance + ['preset' => $presetSel];
-
-    $this->configFactory()->getEditable('simpleavs.settings')->setData($save)->save();
     parent::submitForm($form, $form_state);
     $this->messenger()->addStatus($this->t('SimpleAVS settings saved.'));
   }
