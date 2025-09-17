@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Install/uninstall hooks for SimpleAVS.
@@ -14,33 +15,46 @@ function simpleavs_install(): void {
   \Drupal::configFactory()->getEditable('simpleavs.settings')
     ->set('enabled', FALSE)
     ->set('min_age', 18)
-    ->set('frequency', 'session')  // never|session|daily|weekly|always
-    ->set('method', 'confirm')     // confirm|yesno|dob
-    ->set('target_mode', 'exclude')// include|exclude
+  // never|session|daily|weekly|always.
+    ->set('frequency', 'session')
+  // confirm|yesno|dob.
+    ->set('method', 'confirm')
+  // include|exclude.
+    ->set('target_mode', 'exclude')
     ->set('target_paths', "<front>\n/user/*\n/admin/*\n/simpleavs/*")
     ->set('redirect_success', '')
     ->set('redirect_failure', '')
     // Rich text defaults.
-    ->set('text.confirm_body', ['value' =>
+    ->set('text.confirm_body', [
+      'value' =>
       'You must be at least [age] years old to access this content. Please confirm your age to continue.',
-      'format' => 'restricted_html'])
-    ->set('text.yesno_question', ['value' => 'Are you over the age of [age]?',
-      'format' => 'restricted_html'])
-    ->set('text.dob_instruction', ['value' => 'Please enter your date of birth to verify your age:',
-      'format' => 'restricted_html'])
-    ->set('text.denied_message', ['value' => 'Sorry, you must be at least [age] years old to access this content.',
-      'format' => 'restricted_html'])
+      'format' => 'restricted_html',
+    ])
+    ->set('text.yesno_question', [
+      'value' => 'Are you over the age of [age]?',
+      'format' => 'restricted_html',
+    ])
+    ->set('text.dob_instruction', [
+      'value' => 'Please enter your date of birth to verify your age:',
+      'format' => 'restricted_html',
+    ])
+    ->set('text.denied_message', [
+      'value' => 'Sorry, you must be at least [age] years old to access this content.',
+      'format' => 'restricted_html',
+    ])
     // UI strings.
     ->set('ui.modal_title', 'Age Verification Required')
     ->set('ui.confirm_button', 'I am [age] or older')
     ->set('ui.deny_button', 'I am under [age]')
     ->set('ui.yes_button', 'Yes')
     ->set('ui.no_button', 'No')
-    ->set('dob.format', 'MDY') // MDY|DMY|YMD
+  // MDY|DMY|YMD.
+    ->set('dob.format', 'MDY')
     ->set('dob.verify_text', 'Verify')
     ->set('dob.invalid_text', 'Please enter a valid date.')
     // Appearance.
-    ->set('appearance.preset', 'default') // default|dark|contrast|brand|minimal|custom
+  // default|dark|contrast|brand|minimal|custom.
+    ->set('appearance.preset', 'default')
     ->set('appearance.overlay_color', '#000000')
     ->set('appearance.overlay_opacity', 0.85)
     ->set('appearance.modal_bg', '#ffffff')
