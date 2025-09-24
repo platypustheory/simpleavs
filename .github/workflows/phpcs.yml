@@ -79,4 +79,3 @@ jobs:
             --standard=phpcs.xml.dist \
             --extensions=php,module,inc,install,test,theme,yml \
             "$MODULE_PATH"
-
