@@ -20,17 +20,24 @@
   // ---------- small helpers ----------
   function el(tag, props = {}, children = []) {
     const n = document.createElement(tag);
-    if (props.class) n.className = props.class;
-    if (props.style) n.style.cssText = props.style;
-    if (props.attrs) for (const [k,v] of Object.entries(props.attrs)) n.setAttribute(k, v);
-    if (props.text) n.textContent = props.text;
-    for (const c of children) n.appendChild(c);
+    if (props.class) { n.className = props.class;
+    }
+    if (props.style) { n.style.cssText = props.style;
+    }
+    if (props.attrs) { for (const [k,v] of Object.entries(props.attrs)) { n.setAttribute(k, v);
+    }
+    }
+    if (props.text) { n.textContent = props.text;
+    }
+    for (const c of children) { n.appendChild(c);
+    }
     return n;
   }
 
   async function getJSON(url) {
     const r = await fetch(url, { credentials: "same-origin", cache: "no-store" });
-    if (!r.ok) throw new Error("HTTP " + r.status);
+    if (!r.ok) { throw new Error("HTTP " + r.status);
+    }
     return r.json();
   }
 
@@ -42,17 +49,21 @@
       body: new URLSearchParams(data).toString(),
     });
     const ct = r.headers.get("content-type") || "";
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    if (ct.includes("application/json")) return r.json();
-    return { ok:false, error:"Unexpected response." };
+    if (!r.ok) { throw new Error("HTTP " + r.status);
+    }
+    if (ct.includes("application/json")) { return r.json();
+    }
+    return { ok:FALSE, error:"Unexpected response." };
   }
 
   // ---------- frequency helpers ----------
   const LS_KEY = "simpleavs:lastPass";
   const SS_KEY = "simpleavs:sessionPass";
 
-  function nowMs() { return Date.now(); }
-  function ms(days) { return days * 24 * 60 * 60 * 1000; }
+  function nowMs() {
+ return Date.now(); }
+  function ms(days) {
+ return days * 24 * 60 * 60 * 1000; }
 
   function lastPassMs() {
     const v = localStorage.getItem(LS_KEY);
@@ -63,17 +74,22 @@
     const freq = (cfg.frequency || "always").toLowerCase();
     switch (freq) {
       case "never":
-        return false;
+        return FALSE;
+
       case "always":
-        return true;
+        return TRUE;
+
       case "session":
         return sessionStorage.getItem(SS_KEY) !== "1";
+
       case "daily":
         return (nowMs() - lastPassMs()) > ms(1);
+
       case "weekly":
         return (nowMs() - lastPassMs()) > ms(7);
+
       default:
-        return true;
+        return TRUE;
     }
   }
 
@@ -82,12 +98,15 @@
       case "session":
         sessionStorage.setItem(SS_KEY, "1");
         break;
+
       case "daily":
         localStorage.setItem(LS_KEY, String(nowMs()));
         break;
+
       case "weekly":
         localStorage.setItem(LS_KEY, String(nowMs()));
         break;
+
       // always/never: nothing to persist
     }
   }
@@ -97,21 +116,21 @@
       class: "simpleavs-overlay",
       style:
         "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:9999;" +
-        `background:${cfg.appearance?.overlay_color || "#000"};opacity:${cfg.appearance?.overlay_opacity ?? 0.5};`
+        `background:${cfg.appearance ? .overlay_color || "#000"};opacity : ${cfg.appearance ? .overlay_opacity ? ? 0.5};`
     });
 
     const modal = el("div", {
       class: "simpleavs-modal",
       style:
         "max-width:720px;width:92%;border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.2);" +
-        `background:${cfg.appearance?.modal_bg || "#fff"};color:${cfg.appearance?.text_color || "#000"};` +
+        `background:${cfg.appearance ? .modal_bg || "#fff"};color : ${cfg.appearance ? .text_color || "#000"};` +
         "padding:24px;"
     });
 
-    const title = el("h2", { text: (cfg.strings?.modal_title || "Age Verification Required") });
+    const title = el("h2", { text: (cfg.strings ? .modal_title || "Age Verification Required") });
     title.style.marginTop = "0";
     const body = el("div", { class: "simpleavs-body" });
-    const msg  = el("div", { class: "simpleavs-msg", attrs: { "aria-live":"polite" } });
+    const msg = el("div", { class: "simpleavs-msg", attrs: { "aria-live":"polite" } });
     msg.style.marginTop = "12px";
 
     modal.appendChild(title);
@@ -131,18 +150,18 @@
         attrs: { type: "button" },
         style:
           "border:0;border-radius:12px;padding:12px 18px;cursor:pointer;" +
-          `background:${cfg.appearance?.button_bg || "#1e00ff"};` +
-          `color:${cfg.appearance?.button_text || "#fff"};`
+          `background:${cfg.appearance ? .button_bg || "#1e00ff"};` +
+          `color:${cfg.appearance ? .button_text || "#fff"};`
       });
     }
     return { row, mkBtn: btn };
   }
 
   function buildQuestionUI(cfg, body) {
-    const p = el("p", { text: (cfg.strings?.question_text || "Are you over the age of [age]?").replace("[age]", cfg.min_age || 18) });
+    const p = el("p", { text: (cfg.strings ? .question_text || "Are you over the age of [age]?").replace("[age]", cfg.min_age || 18) });
     const { row, mkBtn } = buildButtonsRow(cfg);
-    const yesBtn = mkBtn(cfg.strings?.yes_button || "Yes");
-    const noBtn  = mkBtn(cfg.strings?.no_button  || "No");
+    const yesBtn = mkBtn(cfg.strings ? .yes_button || "Yes");
+    const noBtn = mkBtn(cfg.strings ? .no_button  || "No");
     row.appendChild(yesBtn);
     row.appendChild(noBtn);
     body.appendChild(p);
@@ -165,24 +184,28 @@
         const m = digits.slice(2, 4);
         const y = digits.slice(4, 8);
         out = d;
-        if (digits.length > 2) out += "/" + m;
-        if (digits.length > 4) out += "/" + y;
+        if (digits.length > 2) { out += "/" + m;
+        }
+        if (digits.length > 4) { out += "/" + y;
+        }
       } else {
         const m = digits.slice(0, 2);
         const d = digits.slice(2, 4);
         const y = digits.slice(4, 8);
         out = m;
-        if (digits.length > 2) out += "/" + d;
-        if (digits.length > 4) out += "/" + y;
+        if (digits.length > 2) { out += "/" + d;
+        }
+        if (digits.length > 4) { out += "/" + y;
+        }
       }
       input.value = out;
     });
   }
 
   function buildDobUI(cfg, body) {
-    const instr = el("p", { text: (cfg.strings?.dob_instruction || "Please enter your date of birth to verify your age:") });
+    const instr = el("p", { text: (cfg.strings ? .dob_instruction || "Please enter your date of birth to verify your age:") });
     const form = el("form", { attrs: { autocomplete: "off" } });
-    form.addEventListener("submit", (e)=>e.preventDefault());
+    form.addEventListener("submit", (e) => e.preventDefault());
 
     const group = el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;align-items:center;" });
     const input = el("input", { attrs: { type: "text", inputmode: "numeric" } });
@@ -199,7 +222,7 @@
     autoFormatInput(input, fmt);
 
     const { mkBtn } = buildButtonsRow(cfg);
-    const submitBtn = mkBtn(cfg.strings?.dob_verify_button || "Verify");
+    const submitBtn = mkBtn(cfg.strings ? .dob_verify_button || "Verify");
 
     group.appendChild(input);
     group.appendChild(submitBtn);
@@ -212,10 +235,12 @@
 
   // Normalize to YYYY-MM-DD given value and format (mdy|dmy).
   function normalizeDob(val, fmt) {
-    if (!val) return null;
+    if (!val) { return NULL;
+    }
     val = val.trim();
     let digits = val.replace(/[^\d]/g, "");
-    if (digits.length !== 8) return null;
+    if (digits.length !== 8) { return NULL;
+    }
 
     let m, d, y;
     if (fmt === "dmy") {
@@ -229,40 +254,45 @@
     }
 
     const Yi = +y, Mi = +m, Di = +d;
-    const dt = new Date(Date.UTC(Yi, Mi-1, Di));
-    if (dt.getUTCFullYear() !== Yi || (dt.getUTCMonth()+1) !== Mi || dt.getUTCDate() !== Di) return null;
+    const dt = new Date(Date.UTC(Yi, Mi - 1, Di));
+    if (dt.getUTCFullYear() !== Yi || (dt.getUTCMonth() + 1) !== Mi || dt.getUTCDate() !== Di) { return NULL;
+    }
 
-    return `${y}-${m}-${d}`;
+    return `${y} - ${m} - ${d}`;
   }
 
   // ---------- main behavior ----------
   Drupal.behaviors.simpleavsAgeGate = {
     attach(context) {
       const cfg = drupalSettings.simpleavs || {};
-      if (!cfg.enabled) return;
+      if (!cfg.enabled) { return;
+      }
 
       // Respect frequency BEFORE doing anything.
-      if (!shouldPrompt(cfg)) return;
+      if (!shouldPrompt(cfg)) { return;
+      }
 
       const hosts = once("simpleavs-agegate", "body", context);
-      if (!hosts.length) return;
+      if (!hosts.length) { return;
+      }
 
       const { overlay, body, msg } = buildBase(cfg);
       document.body.appendChild(overlay);
 
-      let token = null;
-      let ready = false;
+      let token = NULL;
+      let ready = FALSE;
 
       function setBusy(b) {
         overlay.querySelectorAll("button").forEach(btn => btn.disabled = b);
       }
-      setBusy(true);
+      setBusy(TRUE);
 
       getJSON(cfg.endpoints.token).then(j => {
-        token = j.token || null;
+        token = j.token || NULL;
         ready = !!token;
-        if (!ready) throw new Error("No token");
-        setBusy(false);
+        if (!ready) { throw new Error("No token");
+        }
+        setBusy(FALSE);
       }).catch(() => {
         msg.textContent = "Could not obtain verification token.";
       });
@@ -272,19 +302,19 @@
           msg.textContent = "Invalid token.";
           return;
         }
-        setBusy(true);
+        setBusy(TRUE);
         try {
           const res = await postForm(cfg.endpoints.verify, { token, ...data });
           if (res && res.ok) {
             if (res.result === "passed") {
               // Record the pass per configured frequency.
               markPassed(cfg.frequency);
-              if (cfg.redirects?.success) { window.location.href = cfg.redirects.success; return; }
+              if (cfg.redirects ? .success) { window.location.href = cfg.redirects.success; return; }
               overlay.remove();
               return;
             }
             if (res.result === "denied") {
-              if (cfg.redirects?.failure) { window.location.href = cfg.redirects.failure; return; }
+              if (cfg.redirects ? .failure) { window.location.href = cfg.redirects.failure; return; }
               overlay.remove();
               return;
             }
@@ -292,17 +322,17 @@
             overlay.remove();
           } else {
             msg.textContent = (res && res.error) ? res.error : "Verification failed.";
-            token = null; ready = false;
-            try { const j = await getJSON(cfg.endpoints.token); token = j.token || null; ready = !!token; }
+            token = NULL; ready = FALSE;
+            try { const j = await getJSON(cfg.endpoints.token); token = j.token || NULL; ready = !!token; }
             catch {}
-            setBusy(false);
+            setBusy(FALSE);
           }
         } catch (e) {
           msg.textContent = "Verification failed.";
-          token = null; ready = false;
-          try { const j = await getJSON(cfg.endpoints.token); token = j.token || null; ready = !!token; }
+          token = NULL; ready = FALSE;
+          try { const j = await getJSON(cfg.endpoints.token); token = j.token || NULL; ready = !!token; }
           catch {}
-          setBusy(false);
+          setBusy(FALSE);
         }
       }
 
@@ -311,7 +341,7 @@
         submitBtn.addEventListener("click", () => {
           const norm = normalizeDob(input.value, fmt);
           if (!norm) {
-            msg.textContent = cfg.strings?.dob_invalid_message || "Please enter a valid date of birth.";
+            msg.textContent = cfg.strings ? .dob_invalid_message || "Please enter a valid date of birth.";
             return;
           }
           verify({ action: "dob", dob: norm });

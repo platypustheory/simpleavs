@@ -66,7 +66,7 @@ final class AgeGateController implements ContainerInjectionInterface {
   public function token(Request $request): JsonResponse {
     try {
       $token = $this->sessionManager->issueToken();
-      $this->logger->info('Issued token {t}', ['t' => $token]);
+      // Intentionally do not log token values.
       return $this->json(['token' => $token], 200);
     }
     catch (\Throwable $e) {
@@ -179,48 +179,54 @@ final class AgeGateController implements ContainerInjectionInterface {
   }
 
   /**
-   * Normalizes a user DOB to ISO 'Y-m-d'.
+   * Normalize a DOB string from the modal into YYYY-MM-DD.
+   *
+   * Accepts:
+   *   - 09/23/1980, 09-23-1980, 09231980 (mdy)
+   *   - 23/09/1980, 23-09-1980, 23091980 (dmy)
+   *   - 1980-09-23 (ISO; always allowed)
    */
-  private function normalizeDob(string $input, string $expected = 'mdy'): ?string {
-    $s = trim($input);
-    if ($s === '') {
-      return NULL;
-    }
+  private function normalizeDob(string $raw, string $fmt): ?string {
+    $raw = trim($raw);
 
-    // Digits-only path: MMDDYYYY (mdy) or DDMMYYYY (dmy).
-    $digits = preg_replace('/\D+/', '', $s);
-    if (is_string($digits) && strlen($digits) === 8) {
-      if ($expected === 'dmy') {
-        $d = (int) substr($digits, 0, 2);
-        $m = (int) substr($digits, 2, 2);
-        $y = (int) substr($digits, 4, 4);
-      }
-      else {
-        // Default: mdy.
-        $m = (int) substr($digits, 0, 2);
-        $d = (int) substr($digits, 2, 2);
-        $y = (int) substr($digits, 4, 4);
-      }
-      if ($m >= 1 && $m <= 12 && checkdate($m, $d, $y)) {
-        return sprintf('%04d-%02d-%02d', $y, $m, $d);
+    // Accept ISO-8601 directly.
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
+      [$y, $m, $d] = explode('-', $raw);
+      if (checkdate((int) $m, (int) $d, (int) $y)) {
+        return sprintf('%04d-%02d-%02d', (int) $y, (int) $m, (int) $d);
       }
       return NULL;
     }
 
-    // Separated path: strict formats for the expected ordering.
-    $formats = ($expected === 'dmy')
-      ? ['d/m/Y', 'd-m-Y', 'd.m.Y']
-      : ['m/d/Y', 'm-d-Y', 'm.d.Y'];
-
-    foreach ($formats as $fmt) {
-      $dt = \DateTime::createFromFormat('!' . $fmt, $s);
-      $err = \DateTime::getLastErrors();
-      if ($dt && empty($err['warning_count']) && empty($err['error_count'])) {
-        return $dt->format('Y-m-d');
-      }
+    $digits = preg_replace('/\D+/', '', $raw);
+    if (strlen($digits) !== 8) {
+      return NULL;
     }
 
-    return NULL;
+    // Extract parts per configured format.
+    if ($fmt === 'dmy') {
+      $d = substr($digits, 0, 2);
+      $m = substr($digits, 2, 2);
+      $y = substr($digits, 4, 4);
+    }
+    // Default 'mdy'.
+    else {
+      $m = substr($digits, 0, 2);
+      $d = substr($digits, 2, 2);
+      $y = substr($digits, 4, 4);
+    }
+
+    $mm = (int) $m;
+    $dd = (int) $d;
+    $yy = (int) $y;
+    if ($mm < 1 || $mm > 12 || $dd < 1 || $dd > 31 || $yy < 1900 || $yy > 2100) {
+      return NULL;
+    }
+    if (!checkdate($mm, $dd, $yy)) {
+      return NULL;
+    }
+
+    return sprintf('%04d-%02d-%02d', $yy, $mm, $dd);
   }
 
   /**

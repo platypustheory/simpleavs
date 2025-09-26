@@ -82,7 +82,8 @@ final class SimpleAvsHooks {
           'token' => Url::fromRoute('simpleavs.token')->setAbsolute()->toString(),
           'verify' => Url::fromRoute('simpleavs.verify')->setAbsolute()->toString(),
         ],
-        'date_format' => $date_format, // 'mdy' | 'dmy'
+        // 'mdy' | 'dmy'
+        'date_format' => $date_format,
       ];
     }
   }

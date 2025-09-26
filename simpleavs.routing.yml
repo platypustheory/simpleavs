@@ -1,17 +1,26 @@
 simpleavs.settings:
-  path: '/admin/config/simpleavs'
+  path: '/admin/config/age-verifcation/simpleavs'
   defaults:
     _form: '\Drupal\simpleavs\Form\AgeGateSettingsForm'
     _title: 'SimpleAVS'
   requirements:
     _permission: 'administer simpleavs'
 
+simpleavs.admin_config_category:
+  path: '/admin/config/age-verification'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Age verification'
+  requirements:
+    _permission: 'administer site configuration'
+
 simpleavs.verify:
   path: '/simpleavs/verify'
   defaults:
     _controller: '\Drupal\simpleavs\Controller\AgeGateController::verify'
   requirements:
-    # Open by design: one-time, session-bound token required; controller validates payload.
+    # OPEN BY DESIGN: verifies a one-time, session-bound token and DOB/answers only.
+    # No content is exposed; controller performs full validation.
     # phpcs:ignore Drupal.Semantics.OpenPageCallbacks
     _access: 'TRUE'
   options:
@@ -23,7 +32,8 @@ simpleavs.token:
   defaults:
     _controller: '\Drupal\simpleavs\Controller\AgeGateController::token'
   requirements:
-    # Open by design: only issues a one-time, session-bound token; no sensitive data returned.
+    # OPEN BY DESIGN: returns a one-time, session-bound token only (no PII).
+    # The token must be consumed by /simpleavs/verify.
     # phpcs:ignore Drupal.Semantics.OpenPageCallbacks
     _access: 'TRUE'
   options:

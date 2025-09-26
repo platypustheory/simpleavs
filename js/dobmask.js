@@ -10,17 +10,22 @@
   function formatDigits(d, order) {
     // d: only digits
     // order: "mdy" or "dmy"
-    if (!/^\d{1,8}$/.test(d)) return d; // let user continue typing
+    if (!/^\d{1,8}$/.test(d)) { return d; // let user continue typing
+    }
 
     if (order === "dmy") {
       // DD/MM/YYYY
-      if (d.length <= 2) return d;
-      if (d.length <= 4) return d.slice(0,2) + "/" + d.slice(2);
+      if (d.length <= 2) { return d;
+      }
+      if (d.length <= 4) { return d.slice(0,2) + "/" + d.slice(2);
+      }
       return d.slice(0,2) + "/" + d.slice(2,4) + "/" + d.slice(4,8);
     } else {
       // MDY (default): MM/DD/YYYY
-      if (d.length <= 2) return d;
-      if (d.length <= 4) return d.slice(0,2) + "/" + d.slice(2);
+      if (d.length <= 2) { return d;
+      }
+      if (d.length <= 4) { return d.slice(0,2) + "/" + d.slice(2);
+      }
       return d.slice(0,2) + "/" + d.slice(2,4) + "/" + d.slice(4,8);
     }
   }
@@ -36,7 +41,8 @@
         'input.simpleavs-dob, input[name="dob"], input[name="simpleavs_dob"], #simpleavs-dob',
         context
       );
-      if (!inputs.length) return;
+      if (!inputs.length) { return;
+      }
 
       inputs.forEach((el) => {
         // Normalize any prefilled value.

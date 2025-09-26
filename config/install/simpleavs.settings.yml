@@ -1,19 +1,19 @@
+langcode: en
 enabled: false
 method: question
 min_age: 18
+date_format: mdy
 frequency: session
 path_mode: include
 path_patterns: '<front>'
 redirect_success: ''
 redirect_failure: ''
-date_format: mdy
 strings:
   modal_title: 'Age Verification Required'
   question_text: 'Are you over the age of [age]?'
   yes_button: 'Yes'
   no_button: 'No'
   dob_instruction: 'Please enter your date of birth to verify your age:'
-  dob_format: 'MM/DD/YYYY'
   dob_verify_button: 'Verify'
   dob_invalid_message: 'Please enter a valid date of birth.'
   message_confirm: 'This site requires you to be at least [age] years old.'
@@ -21,9 +21,10 @@ strings:
   deny_button: 'Leave'
   denied_message: 'You must be [age]+ to enter.'
 appearance:
+  preset: default
   overlay_color: '#000000'
   overlay_opacity: 0.85
   modal_bg: '#ffffff'
   text_color: '#111111'
-  button_bg: '#1e3a8a'
+  button_bg: '#0d6efd'
   button_text: '#ffffff'

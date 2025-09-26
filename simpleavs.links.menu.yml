@@ -1,6 +1,13 @@
+simpleavs.admin_config_category:
+  title: 'Age verification'
+  description: 'Configure age verification features.'
+  route_name: simpleavs.admin_config_category
+  parent: system.admin_config
+  weight: 0
+
 simpleavs.settings_config:
   title: 'SimpleAVS'
   description: 'Configure the Simple Age Verification Gate.'
   route_name: simpleavs.settings
-  parent: system.admin_config
+  parent: simpleavs.admin_config_category
   weight: 90

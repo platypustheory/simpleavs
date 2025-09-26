@@ -19,7 +19,7 @@
       overlay.style.position = 'fixed';
       overlay.style.inset = '0';
       overlay.style.background = s.appearance.overlayColor || '#000';
-      overlay.style.opacity = (s.appearance.overlayOpacity ?? 0.7);
+      overlay.style.opacity = (s.appearance.overlayOpacity ? ? 0.7);
       overlay.style.zIndex = '99998';
 
       const modal = document.createElement('div');
@@ -58,7 +58,7 @@
         b.style.padding = '8px 14px';
         b.style.borderRadius = '8px';
         b.style.cursor = 'pointer';
-        b.addEventListener('click', async () => {
+        b.addEventListener('click', async() => {
           try {
             const tRes = await fetch(s.endpoints.token, { credentials: 'same-origin' });
             const tJson = await tRes.json();
@@ -96,8 +96,8 @@
         return b;
       }
 
-      btnWrap.appendChild(makeBtn(s.strings.yesButton || 'Yes', true));
-      btnWrap.appendChild(makeBtn(s.strings.noButton || 'No', false));
+      btnWrap.appendChild(makeBtn(s.strings.yesButton || 'Yes', TRUE));
+      btnWrap.appendChild(makeBtn(s.strings.noButton || 'No', FALSE));
 
       modal.appendChild(btnWrap);
       document.body.appendChild(overlay);

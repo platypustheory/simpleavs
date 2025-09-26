@@ -10,3 +10,13 @@ services:
       - '@session'
       - '@logger.channel.simpleavs'
 
+  simpleavs.hooks:
+    class: Drupal\simpleavs\Hook\SimpleAvsHooks
+    arguments:
+      - '@config.factory'
+      - '@path.matcher'
+      - '@path_alias.manager'
+      - '@path.current'
+      - '@page_cache_kill_switch'
+    autowire: true
+    public: true
